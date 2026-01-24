@@ -138,9 +138,10 @@ MIT – Usa libremente.
 Créditos
 
 Desarrollado por:
-- Campoverde Carlos
-- Pasquel Juan
-- Anthony Villarreal.
+- *Campoverde Carlos*
+- *Pasquel Juan*
+- *Anthony Villarreal.*
+
 Librerías: Express, React, face-api.js, Bootstrap.
 
 Si tienes issues, abre un ticket en GitHub. ¡Disfruta del proyecto! 🚀
