@@ -4,46 +4,32 @@ const pool = db.getPool();
 
 const createTables = async () => {
   try {
+    // Crear tipo ENUM
     await pool.query(`
-      CREATE TYPE user_role AS ENUM ('admin', 'client');
+      DO $$
+      BEGIN
+        CREATE TYPE user_role AS ENUM ('admin', 'client');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
     `);
 
+    // Crear tabla limpia (sin campos WebAuthn)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
-        password_hash VARCHAR(255),
+        password_hash VARCHAR(255) NOT NULL,
         role user_role NOT NULL,
         registration_date TIMESTAMP NOT NULL DEFAULT NOW(),
-        preferences JSONB DEFAULT '{}',
-        credentialID BYTEA,
-        publicKey BYTEA,
-        counter BIGINT DEFAULT 0,
-        challenge VARCHAR(500)  -- AGREGAR ESTA LÍNEA
+        preferences JSONB DEFAULT '{"theme": "light", "notifications": true}'
       );
     `);
 
-    console.log('Tablas verificadas/creadas correctamente.');
+    console.log('✅ Tabla users creada/actualizada correctamente (sin campos WebAuthn).');
   } catch (err) {
-    if (err.code === '42710') { // type ya existe
-      console.log('Tipo user_role ya existe.');
-    } else if (err.code === '42P07') { // table already exists
-      console.log('Tabla users ya existe. Agregando columna challenge si no existe...');
-      // Agregar la columna si no existe
-      try {
-        await pool.query(`
-          ALTER TABLE users 
-          ADD COLUMN IF NOT EXISTS challenge VARCHAR(500);
-        `);
-        console.log('Columna challenge agregada/verificada.');
-      } catch (alterErr) {
-        console.error('Error agregando columna challenge:', alterErr.message);
-      }
-    } else {
-      console.error('Error creando tablas:', err);
-      process.exit(1);
-    }
+    console.error('❌ Error creando tablas:', err.message);
   }
 };
 

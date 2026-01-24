@@ -3,3 +3,4 @@ backend/package-lock.json
 backend/.env
 /backend/coverage
 frontend/package-lock.json
+frontend/.env

@@ -1,3 +1,5 @@
+// Patrones: Singleton (DbPool para conexión única), MVC (controllers/models/views en frontend), Observer (eventos storage en frontend).
+// SOLID: S (UserModel solo maneja DB), O (extensible con middlewares), L (subclases posibles), I (interfaces pequeñas), D (inyección via require).
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -5,73 +7,55 @@ const rateLimit = require('express-rate-limit');
 const winston = require('winston');
 const userController = require('./controllers/userController');
 const authMiddleware = require('./middlewares/authMiddleware');
-const { 
-  validateRegister, 
-  validateLogin, 
-  validateSearch, 
-  validateEditUser, 
-  validatePreferences,
-  validateBiometricOptions,
-  validateBiometricVerify 
+const {
+  validateRegister,
+  validateLogin,
+  validateSearch,
+  validateEditUser,
+  validatePreferences
 } = require('./middlewares/validateMiddleware');
 const { createTables } = require('./database/schema');
-
-const isTest = process.env.NODE_ENV === 'test';
-
 const app = express();
-app.use(cors({ origin: 'http://localhost:3000' }));  // Conexión front-back
-app.use(helmet());  // Encriptación end-to-end (headers para HTTPS)
+app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(helmet());
 app.use(express.json());
-
-// Logging seguro
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.simple(),
   transports: [new winston.transports.Console()],
 });
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.url}`);  // Sin sensibles
+  logger.info(`${req.method} ${req.url}`);
   next();
 });
-
-// Rate limiting
-const loginLimiter = isTest 
-  ? (req, res, next) => next()  // Sin límite en tests
-  : rateLimit({ windowMs: 5 * 60 * 1000, max: 5 });
-
-app.use('/auth/login', loginLimiter);
+const limiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 10,
+});
+app.use('/auth/login', limiter);
+app.use('/auth/biometric/login', limiter);
 
 // Rutas
-app.post('/auth/register',
-  validateRegister,               // Primero validaciones
-  authMiddleware(['admin']),      // Luego auth
-  userController.register
-);
+app.post('/auth/public-register', validateRegister, userController.publicRegister);
+app.post('/auth/register', authMiddleware(['admin']), validateRegister, userController.register);
 app.post('/auth/login', validateLogin, userController.login);
+app.post('/auth/biometric/login', userController.biometricLogin);
 app.post('/auth/logout', authMiddleware(), userController.logout);
-app.get('/users/search', validateSearch, authMiddleware(['admin']), userController.searchUsers);
-app.put('/users/:id', validateEditUser, authMiddleware(['admin']), userController.editUser);
-app.get('/profile', authMiddleware(['client']), userController.getProfile);
-app.put('/profile/preferences', validatePreferences, authMiddleware(['client']), userController.updatePreferences);
+app.get('/users', authMiddleware(['admin']), userController.getAllUsers);
+app.get('/users/search', authMiddleware(['admin']), validateSearch, userController.searchUsers);
+app.put('/users/:id', authMiddleware(['admin']), validateEditUser, userController.editUser);
+app.delete('/users/:id', authMiddleware(['admin']), userController.deleteUser);
+app.delete('/users/:id/biometric', authMiddleware(['admin']), userController.deleteBiometric);
+app.get('/profile', authMiddleware(), userController.getProfile);
+app.put('/profile', authMiddleware(), userController.updateProfile);
+app.put('/profile/preferences', authMiddleware(), validatePreferences, userController.updatePreferences);
+app.post('/profile/save-face-embedding', authMiddleware(), userController.saveFaceEmbedding);
+app.delete('/profile/biometric', authMiddleware(), userController.removeFaceEmbedding);
 
-// Nuevas rutas para registro biométrico (facial)
-app.post('/auth/biometric/register-options', 
-  validateBiometricOptions,  // Primero validación
-  authMiddleware(),          // Luego autenticación
-  userController.generateRegistrationOptions
-);
-app.post('/auth/biometric/verify-registration', validateBiometricVerify, authMiddleware(), userController.verifyRegistration); // Protegido
-createTables()
-  .then(() => {
-    if (process.env.NODE_ENV !== 'test') {  // No escuchar en modo test (supertest lo maneja)
-      app.listen(5000, () => {
-        console.log('Backend corriendo en http://localhost:5000');
-      });
-    }
-  })
-  .catch((err) => {
-    console.error('Error al crear tablas:', err);
-    process.exit(1);
-  });
+createTables().then(() => {
+  if (process.env.NODE_ENV !== 'test') {
+    app.listen(5000, () => console.log('Backend en http://localhost:5000'));
+  }
+});
 
 module.exports = app;

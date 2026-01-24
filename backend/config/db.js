@@ -1,7 +1,5 @@
 const { Pool } = require('pg');
-
 let instance = null;
-
 class DbPool {
   constructor() {
     if (!instance) {
@@ -16,10 +14,8 @@ class DbPool {
     }
     return instance;
   }
-
   getPool() {
     return this.pool;
   }
 }
-
 module.exports = new DbPool();

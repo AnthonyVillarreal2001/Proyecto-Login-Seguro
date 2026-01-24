@@ -1,92 +1,386 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import ProfileSettings from './ProfileSettings';
+import { Button, Card, Form, ListGroup, Modal, Spinner } from 'react-bootstrap';
 
 const AdminDashboard = () => {
-  const [welcome, setWelcome] = useState('Bienvenido Admin');
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'client' });
-  const [searchQuery, setSearchQuery] = useState('');
-  const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState([]);
+    const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'client' });
+    const [editingUser, setEditingUser] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [preferences, setPreferences] = useState({ theme: 'light', notifications: true });
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [modalMessage, setModalMessage] = useState('');
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    axios.get('/profile', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => setWelcome(`Bienvenido, ${res.data.name}`))
-      .catch(err => console.error(err));
-  }, []);
+    useEffect(() => {
+        fetchUsers();
+        loadPreferences();
+    }, []);
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post('/auth/register', newUser, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      alert('Usuario registrado');
-      setNewUser({ name: '', email: '', password: '', role: 'client' });
-    } catch (err) {
-      alert('Error: ' + (err.response?.data?.error || err.message));
-    }
-  };
+    const loadPreferences = async () => {
+        try {
+        const res = await axios.get('/profile');
+        setPreferences(res.data.preferences || { theme: 'light', notifications: true });
+        // Aplicar tema inmediatamente
+        document.documentElement.setAttribute('data-bs-theme', preferences.theme);
+        } catch (err) {
+        console.error('Error cargando preferencias:', err);
+        }
+    };
+    
+    const fetchUsers = async (query = '') => {
+        setLoading(true);
+        try {
+        const res = await axios.get(`/users/search?query=${query}`);
+        setUsers(res.data);
+        } catch (err) {
+        setModalMessage('No pudimos cargar los usuarios. ¿El servidor está de siesta? 😴');
+        setShowErrorModal(true);
+        } finally {
+        setLoading(false);
+        }
+    };
 
-  const handleSearch = async () => {
-    try {
-      const res = await axios.get(`/users/search?query=${searchQuery}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      setUsers(res.data);
-    } catch (err) {
-      alert('Error en búsqueda');
-    }
-  };
+    const handleUpdatePreferences = async () => {
+        try {
+        await axios.put('/profile/preferences', { preferences });
+        // Aplicar tema en tiempo real
+        document.documentElement.setAttribute('data-bs-theme', preferences.theme);
+        setModalMessage('¡Preferencias actualizadas! Tema aplicado correctamente. 😎');
+        setShowSuccessModal(true);
+        } catch (err) {
+        setModalMessage('No se pudieron guardar las preferencias. Intenta de nuevo.');
+        setShowErrorModal(true);
+        }
+    };
 
-  const handleEdit = async (id, updates) => {
-    try {
-      await axios.put(`/users/${id}`, updates, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      alert('Usuario editado');
-      handleSearch(); // Refrescar lista
-    } catch (err) {
-      alert('Error al editar');
-    }
-  };
+    const handleRegister = async (e) => {
+        e.preventDefault();
+        if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim()) {
+        setModalMessage('¡Completa todos los campos, por favor! No queremos usuarios fantasma 👻');
+        setShowErrorModal(true);
+        return;
+        }
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    window.location.href = '/login';
-  };
+        try {
+        await axios.post('/auth/register', newUser);
+        setNewUser({ name: '', email: '', password: '', role: 'client' });
+        fetchUsers();
+        setModalMessage('¡Nuevo usuario creado con éxito! Bienvenido al equipo. 🎉');
+        setShowSuccessModal(true);
+        } catch (err) {
+        const msg = err.response?.data?.error || 'Error al registrar. ¿Email ya existe?';
+        setModalMessage(msg);
+        setShowErrorModal(true);
+        }
+    };
 
-  return (
-    <div className="container mt-5">
-      <h2>{welcome}</h2>
-      <button onClick={handleLogout} className="btn btn-danger mb-4">Logout</button>
+    const startEdit = (user) => {
+        setEditingUser({ ...user, password: '' }); // password vacío para no mostrar el hash
+    };
 
-      <h4>Registrar Nuevo Usuario</h4>
-      <form onSubmit={handleRegister}>
-        <input type="text" placeholder="Nombre" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} required className="form-control mb-2" aria-label="Nombre" />
-        <input type="email" placeholder="Email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} required className="form-control mb-2" aria-label="Email" />
-        <input type="password" placeholder="Contraseña" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} required className="form-control mb-2" aria-label="Contraseña" />
-        <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="form-select mb-2" aria-label="Rol">
-          <option value="client">Cliente</option>
-          <option value="admin">Admin</option>
-        </select>
-        <button type="submit" className="btn btn-success">Registrar</button>
-      </form>
+    const handleEdit = async (e) => {
+        e.preventDefault();
+        try {
+        await axios.put(`/users/${editingUser.id}`, editingUser);
+        setEditingUser(null);
+        fetchUsers();
+        setModalMessage('Usuario actualizado correctamente. ¡Buen trabajo, jefe! 👍');
+        setShowSuccessModal(true);
+        } catch (err) {
+        setModalMessage('No se pudo editar el usuario. Intenta de nuevo.');
+        setShowErrorModal(true);
+        }
+    };
 
-      <h4 className="mt-5">Búsqueda y Edición de Usuarios</h4>
-      <input type="text" placeholder="Buscar por nombre o email" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="form-control mb-2" aria-label="Buscar usuario" />
-      <button onClick={handleSearch} className="btn btn-primary mb-3">Buscar</button>
+    const handleDelete = async (id) => {
+        if (!window.confirm('¿Realmente quieres eliminar este usuario? Esta acción NO se puede deshacer. 😱')) return;
 
-      <ul className="list-group">
-        {users.map(user => (
-          <li key={user.id} className="list-group-item">
-            {user.name} - {user.email} ({user.role})
-            <button onClick={() => handleEdit(user.id, { name: 'Editado' })} className="btn btn-sm btn-warning ms-3">Editar Nombre</button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+        try {
+        await axios.delete(`/users/${id}`);
+        fetchUsers();
+        setModalMessage('Usuario eliminado permanentemente. Adiós, cuenta. 👋');
+        setShowSuccessModal(true);
+        } catch (err) {
+        setModalMessage('Error al eliminar usuario. ¿Tiene dependencias?');
+        setShowErrorModal(true);
+        }
+    };
+
+    const handleDeleteBiometric = async (id) => {
+        if (!window.confirm('¿Eliminar la biometría de este usuario? Perderá acceso facial. ¿Seguro?')) return;
+
+        try {
+        await axios.delete(`/users/${id}/biometric`);
+        fetchUsers();
+        setModalMessage('Biometría facial eliminada con éxito.');
+        setShowSuccessModal(true);
+        } catch (err) {
+        setModalMessage('No se pudo eliminar la biometría. Intenta más tarde.');
+        setShowErrorModal(true);
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+    };
+
+    return (
+        <div className="container mt-5">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+            <h2>Panel de Administración</h2>
+            <Button variant="outline-danger" onClick={handleLogout}>
+            Cerrar sesión
+            </Button>
+        </div>
+
+        {/* Sección de Preferencias (nueva para admin) */}
+        <Card className="mb-4 shadow-sm">
+            <Card.Header className="bg-info text-white">
+            <h5 className="mb-0">Mis Preferencias</h5>
+            </Card.Header>
+            <Card.Body>
+            <Form>
+                <Form.Check
+                type="checkbox"
+                id="notifications"
+                label="Recibir notificaciones"
+                checked={preferences.notifications}
+                onChange={e => setPreferences({ ...preferences, notifications: e.target.checked })}
+                className="mb-3"
+                />
+
+                <Form.Group className="mb-3">
+                <Form.Label>Tema de la aplicación</Form.Label>
+                <Form.Select
+                    value={preferences.theme}
+                    onChange={e => setPreferences({ ...preferences, theme: e.target.value })}
+                >
+                    <option value="light">Claro (modo día ☀️)</option>
+                    <option value="dark">Oscuro (modo noche 🌙)</option>
+                </Form.Select>
+                </Form.Group>
+
+                <Button variant="primary" onClick={handleUpdatePreferences}>
+                Guardar preferencias
+                </Button>
+            </Form>
+            </Card.Body>
+        </Card>
+
+        {loading && <div className="text-center my-5"><Spinner animation="border" /></div>}
+
+        {/* Registro de nuevo usuario */}
+        <Card className="mb-4 shadow-sm">
+            <Card.Header className="bg-primary text-white">
+            <h5 className="mb-0">Registrar Nuevo Usuario</h5>
+            </Card.Header>
+            <Card.Body>
+            <Form onSubmit={handleRegister}>
+                <Form.Group className="mb-3">
+                <Form.Label>Nombre completo</Form.Label>
+                <Form.Control
+                    value={newUser.name}
+                    onChange={e => setNewUser({ ...newUser, name: e.target.value })}
+                    placeholder="Ej: Juan Pérez"
+                    required
+                />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                <Form.Label>Correo electrónico</Form.Label>
+                <Form.Control
+                    type="email"
+                    value={newUser.email}
+                    onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="correo@ejemplo.com"
+                    required
+                />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                <Form.Label>Contraseña</Form.Label>
+                <Form.Control
+                    type="password"
+                    value={newUser.password}
+                    onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                    placeholder="Mínimo 8 caracteres"
+                    required
+                />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                <Form.Label>Rol</Form.Label>
+                <Form.Select
+                    value={newUser.role}
+                    onChange={e => setNewUser({ ...newUser, role: e.target.value })}
+                >
+                    <option value="client">Cliente</option>
+                    <option value="admin">Administrador</option>
+                </Form.Select>
+                </Form.Group>
+
+                <Button type="submit" variant="success">
+                Crear usuario
+                </Button>
+            </Form>
+            </Card.Body>
+        </Card>
+
+        {/* Búsqueda y lista de usuarios */}
+        <Card className="mb-4 shadow-sm">
+            <Card.Header className="bg-info text-white">
+            <h5 className="mb-0">Usuarios del sistema</h5>
+            </Card.Header>
+            <Card.Body>
+            <div className="input-group mb-3">
+                <Form.Control
+                placeholder="Buscar por nombre o email..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                />
+                <Button variant="primary" onClick={() => fetchUsers(searchQuery)}>
+                Buscar
+                </Button>
+            </div>
+
+            <ListGroup>
+                {users.length === 0 ? (
+                <ListGroup.Item className="text-center text-muted">
+                    No hay usuarios que coincidan con la búsqueda
+                </ListGroup.Item>
+                ) : (
+                users.map(user => (
+                    <ListGroup.Item key={user.id} className="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{user.name}</strong> — {user.email}
+                        <br />
+                        <small className="text-muted">
+                        Rol: {user.role} | {user.preferences?.faceEmbedding ? 'Con biometría' : 'Sin biometría'}
+                        </small>
+                    </div>
+                    <div>
+                        <Button
+                        variant="outline-primary"
+                        size="sm"
+                        className="me-2"
+                        onClick={() => startEdit(user)}
+                        >
+                        Editar
+                        </Button>
+                        <Button
+                        variant="outline-danger"
+                        size="sm"
+                        className="me-2"
+                        onClick={() => handleDelete(user.id)}
+                        >
+                        Eliminar
+                        </Button>
+                        {user.preferences?.faceEmbedding && (
+                        <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            onClick={() => handleDeleteBiometric(user.id)}
+                        >
+                            Quitar biometría
+                        </Button>
+                        )}
+                    </div>
+                    </ListGroup.Item>
+                ))
+                )}
+            </ListGroup>
+            </Card.Body>
+        </Card>
+
+        {/* Modal de edición */}
+        {editingUser && (
+            <Modal show={true} onHide={() => setEditingUser(null)} centered size="lg">
+            <Modal.Header closeButton>
+                <Modal.Title>Editar usuario: {editingUser.name}</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <Form onSubmit={handleEdit}>
+                <Form.Group className="mb-3">
+                    <Form.Label>Nombre</Form.Label>
+                    <Form.Control
+                    value={editingUser.name}
+                    onChange={e => setEditingUser({ ...editingUser, name: e.target.value })}
+                    />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                    <Form.Label>Email</Form.Label>
+                    <Form.Control
+                    type="email"
+                    value={editingUser.email}
+                    onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
+                    />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                    <Form.Label>Nueva contraseña (dejar vacío si no cambia)</Form.Label>
+                    <Form.Control
+                    type="password"
+                    value={editingUser.password || ''}
+                    onChange={e => setEditingUser({ ...editingUser, password: e.target.value })}
+                    placeholder="Solo si deseas cambiarla"
+                    />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                    <Form.Label>Rol</Form.Label>
+                    <Form.Select
+                    value={editingUser.role}
+                    onChange={e => setEditingUser({ ...editingUser, role: e.target.value })}
+                    >
+                    <option value="client">Cliente</option>
+                    <option value="admin">Administrador</option>
+                    </Form.Select>
+                </Form.Group>
+
+                <div className="d-grid">
+                    <Button type="submit" variant="primary">
+                    Guardar cambios
+                    </Button>
+                </div>
+                </Form>
+            </Modal.Body>
+            </Modal>
+        )}
+
+        <ProfileSettings />
+
+        {/* Modal Éxito */}
+        <Modal show={showSuccessModal} onHide={() => setShowSuccessModal(false)} centered>
+            <Modal.Header closeButton>
+            <Modal.Title>¡Operación exitosa!</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>{modalMessage}</Modal.Body>
+            <Modal.Footer>
+            <Button variant="success" onClick={() => setShowSuccessModal(false)}>
+                Genial
+            </Button>
+            </Modal.Footer>
+        </Modal>
+
+        {/* Modal Error */}
+        <Modal show={showErrorModal} onHide={() => setShowErrorModal(false)} centered>
+            <Modal.Header closeButton>
+            <Modal.Title>¡Algo falló!</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>{modalMessage}</Modal.Body>
+            <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowErrorModal(false)}>
+                Entendido
+            </Button>
+            </Modal.Footer>
+        </Modal>
+        </div>
+    );
 };
 
 export default AdminDashboard;
