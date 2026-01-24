@@ -1,70 +1,90 @@
-# Getting Started with Create React App
+# Frontend - Proyecto Login Seguro
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Interfaz de usuario del sistema de autenticación segura con biometría facial.  
+Construido con **React**, **Bootstrap** y **face-api.js** para reconocimiento facial.
 
-## Available Scripts
+## Tecnologías principales
 
-In the project directory, you can run:
+- React 18
+- React Router v6
+- Axios (peticiones HTTP)
+- Bootstrap 5 (UI responsiva + temas claro/oscuro)
+- face-api.js (biometría facial en navegador)
+- UUID (para sessionID único)
 
-### `npm start`
+## Estructura de carpetas
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```
+frontend/
+├── public/
+│   ├── models/               → Modelos de face-api.js (descargar de GitHub)
+│   └── index.html
+├── src/
+│   ├── components/           → Login, Register, AdminDashboard, ClientDashboard, ProfileSettings
+│   ├── utils/                → auth.js (JWT, logout, multi-ventana)
+│   ├── App.js                → Rutas y tema global
+│   └── index.js              → Entry point
+└── package.json
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Requisitos
 
-### `npm test`
+- **Node.js** ≥ 18
+- **Backend** corriendo en `http://localhost:5000`
+- **Modelos de face-api.js** en `public/models/` (descargar desde: https://github.com/justadudewhohacks/face-api.js/tree/master/weights)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Instalación
 
-### `npm run build`
+### 1. Entra a la carpeta frontend
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+cd frontend
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 2. Instala dependencias
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npm install
+```
 
-### `npm run eject`
+### 3. Inicia la aplicación
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+npm start
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Abre en: http://localhost:3000
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Funcionalidades principales
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- **Registro público** (`/register`)
+- **Login** con contraseña o biometría facial (modal con cámara en vivo)
+- **Dashboard Cliente**: perfil, edición con contraseña, preferencias (tema claro/oscuro), registro/eliminar biometría
+- **Dashboard Admin**: CRUD usuarios, preferencias propias
+- **Tema claro/oscuro** aplicado globalmente según preferencias guardadas
+- **Cierre automático de sesión** si se inicia en otra pestaña (seguridad)
 
-## Learn More
+## Comandos útiles
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- **Desarrollo**: `npm start`
+- **Build para producción**: `npm run build`
+- **Tests**: `npm test` (si agregas)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## ## Notas importantes
 
-### Code Splitting
+- La cámara se abre en modales dedicados → se cierra siempre al finalizar o cancelar
+- Tema claro/oscuro se aplica con `data-bs-theme` en `<html>` → Bootstrap cambia automáticamente
+- **Sesiones seguras**: no permite múltiples pestañas activas con la misma cuenta
+- **Biometría**: embedding facial guardado en `preferences.faceEmbedding` (JSONB)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Descarga de modelos face-api.js
 
-### Analyzing the Bundle Size
+Descarga los siguientes archivos y colócalos en `public/models/`:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+- `ssd_mobilenetv1_model-*.json` + shards
+- `face_landmark_68_model-*.json` + shards
+- `face_recognition_model-*.json` + shards
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+¡Proyecto listo para pruebas y presentación! 🚀
