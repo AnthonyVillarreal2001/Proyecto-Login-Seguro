@@ -70,7 +70,7 @@ Abre en: http://localhost:3000
 - **Build para producción**: `npm run build`
 - **Tests**: `npm test` (si agregas)
 
-## ## Notas importantes
+## Notas importantes
 
 - La cámara se abre en modales dedicados → se cierra siempre al finalizar o cancelar
 - Tema claro/oscuro se aplica con `data-bs-theme` en `<html>` → Bootstrap cambia automáticamente
