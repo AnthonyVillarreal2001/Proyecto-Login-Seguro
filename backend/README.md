@@ -1,6 +1,4 @@
-¡Claro, Anthony! Aquí te dejo dos README.md bien estructurados y completos, uno para la carpeta backend y otro para la carpeta frontend. Están en formato Markdown listo para copiar y pegar directamente en cada carpeta de tu repositorio de GitHub.
-README para la carpeta backend
-Markdown# Backend - Proyecto Login Seguro
+# Backend - Proyecto Login Seguro
 
 Este es el backend del proyecto de autenticación segura con soporte para biometría facial.  
 Está construido con **Node.js + Express**, utiliza **PostgreSQL** como base de datos y **JWT** para sesiones.
