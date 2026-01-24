@@ -137,7 +137,10 @@ Abre en http://localhost:3000.
 MIT – Usa libremente.
 Créditos
 
-Desarrollado por Campoverde Carlos, Pasquel Juan y Anthony Villarreal.
+Desarrollado por:
+- Campoverde Carlos
+- Pasquel Juan
+- Anthony Villarreal.
 Librerías: Express, React, face-api.js, Bootstrap.
 
 Si tienes issues, abre un ticket en GitHub. ¡Disfruta del proyecto! 🚀
