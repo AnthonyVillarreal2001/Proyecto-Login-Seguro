@@ -9,7 +9,7 @@ const userController = {
     try {
       const existingUser = await UserModel.findUserByEmail(email);
       if (existingUser) return res.status(409).json({ error: 'Email ya registrado' });
-      const user = await UserModel.createUser(name, email, password, role);
+      const user = await UserModel.createUser(name.trim(), email.trim(), password, role);
       res.status(201).json({ message: 'Usuario registrado', user });
     } catch (err) {
       console.error('Error en registro:', err);
@@ -18,21 +18,15 @@ const userController = {
   },
   async publicRegister(req, res) {
     const { name, email, password } = req.body;
-
     try {
-      const existing = await UserModel.findUserByEmail(email);
-      if (existing) {
-        return res.status(409).json({ error: 'El email ya está registrado' });
+      const existingUser = await UserModel.findUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({ error: 'Email ya registrado' });
       }
-
-      const user = await UserModel.createUser(name.trim(), email.trim().toLowerCase(), password);
-
-      res.status(201).json({
-        message: '¡Registro exitoso! Ahora puedes iniciar sesión.',
-        userId: user.id
-      });
+      const user = await UserModel.createUser(name.trim(), email.trim(), password, 'client');
+      res.status(201).json({ message: 'Registro exitoso. Ahora puedes iniciar sesión.' });
     } catch (err) {
-      console.error('Error en publicRegister:', err);
+      console.error('Error en registro público:', err);
       res.status(500).json({ error: 'Error al registrar usuario' });
     }
   },
@@ -42,12 +36,14 @@ const userController = {
       if (!email) return res.status(400).json({ error: 'Email requerido' });
       const user = await UserModel.findUserByEmail(email);
       if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
+
       if (fallbackPassword) {
         const match = await bcrypt.compare(fallbackPassword, user.password_hash);
         if (!match) return res.status(401).json({ error: 'Contraseña inválida' });
       } else {
-        return res.status(400).json({ error: 'Contraseña requerida para login' });
+        return res.status(400).json({ error: 'Se requiere contraseña para este login' });
       }
+
       const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, 'secret_key', { expiresIn: '30m' });
       res.json({ token, message: 'Login exitoso' });
     } catch (err) {
@@ -60,23 +56,29 @@ const userController = {
     try {
       const user = await UserModel.findUserByEmail(email);
       if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
+
       const savedEmbedding = user.preferences?.faceEmbedding;
       if (!savedEmbedding) return res.status(401).json({ error: 'No hay biometría registrada' });
+
       const distance = euclideanDistance(savedEmbedding, embedding);
       if (distance < 0.6) {
         const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, 'secret_key', { expiresIn: '30m' });
         return res.json({ token, message: 'Login biométrico exitoso' });
       }
-      return res.status(401).json({ error: 'Biometría no reconocida' });
+      return res.status(401).json({ error: 'Rostro no reconocido' });
     } catch (err) {
       console.error('Error en login biométrico:', err);
       res.status(500).json({ error: 'Error interno' });
     }
   },
   async logout(req, res) {
-    const token = req.headers.authorization.split(' ')[1];
-    blacklist.add(token);
-    res.json({ message: 'Sesión cerrada' });
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      if (token) blacklist.add(token);
+      res.json({ message: 'Sesión cerrada' });
+    } catch (err) {
+      res.status(500).json({ error: 'Error al cerrar sesión' });
+    }
   },
   async searchUsers(req, res) {
     const { query } = req.query;
@@ -123,9 +125,14 @@ const userController = {
     const { embedding, password } = req.body;
     try {
       const user = await UserModel.findUserById(req.user.id);
-      if (!await bcrypt.compare(password, user.password_hash)) return res.status(401).json({ error: 'Contraseña inválida' });
+      if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+      const match = await bcrypt.compare(password, user.password_hash);
+      if (!match) return res.status(401).json({ error: 'Contraseña inválida' });
+
       const preferences = { ...user.preferences, faceEmbedding: embedding };
       await UserModel.updateUser(user.id, { preferences });
+
       res.json({ success: true, message: 'Biometría registrada' });
     } catch (err) {
       console.error('Error guardando biometría:', err);
@@ -146,24 +153,28 @@ const userController = {
     }
   },
   async updateProfile(req, res) {
-    const { name, email, password, currentPassword } = req.body;
-    const user = await UserModel.findUserById(req.user.id);
+    try {
+      const { name, email, password, currentPassword } = req.body;
+      const user = await UserModel.findUserById(req.user.id);
 
-    if (!await bcrypt.compare(currentPassword, user.password_hash)) {
-      return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+      if (!await bcrypt.compare(currentPassword, user.password_hash)) {
+        return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+      }
+
+      const updates = {};
+      if (name) updates.name = name;
+      if (email) updates.email = email;
+      if (password) updates.password_hash = await bcrypt.hash(password, 10);
+
+      await UserModel.updateUser(req.user.id, updates);
+      res.json({ message: 'Perfil actualizado' });
+    } catch (err) {
+      console.error('Error en updateProfile:', err);
+      res.status(500).json({ error: 'Error interno al actualizar perfil' });
     }
-
-    const updates = {};
-    if (name) updates.name = name;
-    if (email) updates.email = email;
-    if (password) updates.password_hash = await bcrypt.hash(password, 10);
-
-    await UserModel.updateUser(req.user.id, updates);
-    res.json({ message: 'Perfil actualizado' });
   }
 };
 
-// Función helper para distancia euclidiana (ya que no usamos face-api en backend)
 function euclideanDistance(arr1, arr2) {
   return Math.sqrt(arr1.reduce((sum, val, i) => sum + Math.pow(val - arr2[i], 2), 0));
 }

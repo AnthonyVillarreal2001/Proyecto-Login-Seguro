@@ -46,8 +46,12 @@
       "**/tests/**/*.test.js",
       "**/tests/**/*.spec.js"
     ],
-    "setupFilesAfterEnv": [],
     "verbose": true,
-    "testTimeout": 10000
+    "setupFilesAfterEnv": ["./tests/setup.js"],
+    "testTimeout": 10000,
+    "forceExit": true,
+    "clearMocks": true,
+    "resetMocks": true,
+    "restoreMocks": true
   }
 }

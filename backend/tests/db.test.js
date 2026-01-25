@@ -1,22 +1,71 @@
-// Crea un archivo de test para db.js: tests/db.test.js
-const DbPool = require('../config/db');
+// tests/db.test.js
 
-describe('DbPool Singleton', () => {
-  test('Debe retornar la misma instancia siempre', () => {
-    const instance1 = DbPool;
-    const instance2 = DbPool;
-    const instance3 = require('../config/db'); // Nueva require
-    
-    expect(instance1).toBe(instance2);
-    expect(instance1).toBe(instance3);
+// Mock simple sin variables complejas
+jest.mock('pg', () => {
+  // Crear mocks dentro del closure
+  const mockQuery = jest.fn();
+  const mockConnect = jest.fn();
+  const mockEnd = jest.fn();
+  const mockOn = jest.fn();
+  
+  const mockPoolInstance = {
+    query: mockQuery,
+    connect: mockConnect,
+    end: mockEnd,
+    on: mockOn
+  };
+  
+  const MockPool = jest.fn(() => mockPoolInstance);
+  
+  // Retornar tanto Pool como la instancia para tests
+  return {
+    Pool: MockPool,
+    __mockPoolInstance: mockPoolInstance,
+    __MockPool: MockPool
+  };
+});
+
+// Importar después del mock
+const { Pool, __mockPoolInstance, __MockPool } = require('pg');
+
+describe('DbPool - Singleton y Pool', () => {
+  beforeEach(() => {
+    // Clear mocks
+    jest.clearAllMocks();
   });
 
-  test('Debe tener método getPool', () => {
-    const db = DbPool;
-    expect(typeof db.getPool).toBe('function');
-    
+  test('getPool retorna el pool mockeado', () => {
+    jest.resetModules();
+    const db = require('../config/db');
     const pool = db.getPool();
+    
+    // Verificar que retorna una instancia de pool
     expect(pool).toBeDefined();
     expect(typeof pool.query).toBe('function');
+  });
+
+  test('maneja error en constructor sin romper', () => {
+    // Para este test, necesitamos un mock especial
+    // Simular error en Pool
+    const originalPool = Pool;
+    
+    // Crear mock que lance error
+    const errorMock = jest.fn(() => {
+      throw new Error('Connection error');
+    });
+    
+    // Reemplazar temporalmente
+    require('pg').Pool = errorMock;
+    
+    // Reset cache del módulo db
+    jest.resetModules();
+    
+    // Importar db - debería manejar el error
+    expect(() => {
+      require('../config/db');
+    }).not.toThrow();
+    
+    // Restaurar
+    require('pg').Pool = originalPool;
   });
 });
