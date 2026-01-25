@@ -12,10 +12,14 @@ const validateRegister = [
 ];
 const validateLogin = [
   body('email').isEmail().normalizeEmail(),
-  body('fallbackPassword').isString(),
+  body('fallbackPassword').isString(), // ← Esto podría estar fallando
   (req, res, next) => {
+    console.log('Validating login:', req.body);
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
+      return res.status(400).json({ errors: errors.array() });
+    }
     next();
   }
 ];

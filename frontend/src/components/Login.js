@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import * as faceapi from 'face-api.js';
@@ -14,6 +14,42 @@ const Login = () => {
   const videoRef = useRef(null);
   const [cameraActive, setCameraActive] = useState(false);
   const navigate = useNavigate();
+
+  // Al inicio del componente Login, agrega:
+  useEffect(() => {
+    // Verificar si venimos de un logout por timeout
+    const urlParams = new URLSearchParams(window.location.search);
+    const reason = urlParams.get('reason');
+    
+    if (reason) {
+      let message = '';
+      switch(reason) {
+        case 'timeout':
+        case 'Sesión cerrada por inactividad':
+          message = 'Tu sesión se cerró por inactividad. Por seguridad, vuelve a iniciar sesión.';
+          break;
+        case 'expired':
+          message = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
+          break;
+        default:
+          message = reason;
+      }
+      
+      setModalMessage(message);
+      setShowErrorModal(true);
+      
+      // Limpiar parámetro de URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    // También verificar sessionStorage
+    const storedReason = sessionStorage.getItem('logoutReason');
+    if (storedReason) {
+      setModalMessage(storedReason);
+      setShowErrorModal(true);
+      sessionStorage.removeItem('logoutReason');
+    }
+  }, []);
 
   const loadModels = async () => {
     try {
@@ -58,7 +94,11 @@ const Login = () => {
     }
 
     try {
-      const res = await axios.post('/auth/login', { email, fallbackPassword: password });
+      const res = await axios.post('/auth/login', { 
+        email, 
+        fallbackPassword: password  // ← Usa fallbackPassword
+      });
+      
       localStorage.setItem('token', res.data.token);
       setModalMessage('¡Login exitoso con contraseña! Bienvenido de vuelta. 🎉');
       setShowSuccessModal(true);

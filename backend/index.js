@@ -15,10 +15,12 @@ const {
   validatePreferences
 } = require('./middlewares/validateMiddleware');
 const { createTables } = require('./database/schema');
+const sessionTimeout = require('./middlewares/sessionTimeout');
 const app = express();
 app.use(cors({ origin: 'http://localhost:3000' }));
 app.use(helmet());
 app.use(express.json());
+app.use(sessionTimeout);
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.simple(),
@@ -51,6 +53,7 @@ app.put('/profile', authMiddleware(), userController.updateProfile);
 app.put('/profile/preferences', authMiddleware(), validatePreferences, userController.updatePreferences);
 app.post('/profile/save-face-embedding', authMiddleware(), userController.saveFaceEmbedding);
 app.delete('/profile/biometric', authMiddleware(), userController.removeFaceEmbedding);
+app.post('/auth/renew-token', authMiddleware(), userController.renewToken);
 
 createTables().then(() => {
   if (process.env.NODE_ENV !== 'test') {

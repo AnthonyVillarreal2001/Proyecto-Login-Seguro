@@ -51,6 +51,7 @@
   "browser": {
     "fs": false,
     "path": false,
-    "os": false
+    "os": false,
+    "crypto": false
   }
 }

@@ -41,7 +41,7 @@ describe('API Integración', () => {
     expect(jwt.sign).toHaveBeenCalledWith(
       { id: 1, role: 'client', email: 'test@test.com' },
       'secret_key',
-      { expiresIn: '30m' }
+      { expiresIn: '5m' }
     );
   });
 

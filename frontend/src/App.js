@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
 import AdminDashboard from './components/AdminDashboard';
 import ClientDashboard from './components/ClientDashboard';
 import { isAuthenticated, getUserRole } from './utils/auth';
-import { useEffect } from 'react';
+import { initSessionManager } from './utils/sessionManager';
 import axios from 'axios';
 
 const ProtectedRoute = ({ children, role }) => {
@@ -15,37 +15,81 @@ const ProtectedRoute = ({ children, role }) => {
 };
 
 function App() {
+  const [theme, setTheme] = useState('light');
+  const [loading, setLoading] = useState(true);
+  const sessionInitialized = useRef(false);
 
   useEffect(() => {
     const applyTheme = async () => {
-      if (!isAuthenticated()) return;
+      // Solo aplicar tema si está autenticado
+      if (!isAuthenticated()) {
+        setTheme('light');
+        document.documentElement.setAttribute('data-bs-theme', 'light');
+        setLoading(false);
+        return;
+      }
 
       try {
         const res = await axios.get('/profile');
-        const theme = res.data.preferences?.theme || 'light';
-        document.documentElement.setAttribute('data-bs-theme', theme);
+        const userTheme = res.data.preferences?.theme || 'light';
+        setTheme(userTheme);
+        document.documentElement.setAttribute('data-bs-theme', userTheme);
+        
+        // Inicializar session manager SOLO UNA VEZ después de cargar el perfil
+        if (!sessionInitialized.current) {
+          console.log('Inicializando SessionManager después de cargar perfil...');
+          initSessionManager();
+          sessionInitialized.current = true;
+        }
+        
       } catch (err) {
-        // Si falla, tema por defecto light
+        console.warn('No se pudo cargar el tema:', err.message);
+        setTheme('light');
         document.documentElement.setAttribute('data-bs-theme', 'light');
+        
+        if (err.response?.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('sessionID');
+        }
+      } finally {
+        setLoading(false);
       }
     };
 
     applyTheme();
 
-    // Escuchar cambios en localStorage (por si se actualiza en otra pestaña)
-    const handleStorageChange = () => applyTheme();
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return () => {
+      // No destruir session manager en recargas, solo en cierre de pestaña
+      // El session manager se maneja a sí mismo
+    };
   }, []);
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Cargando...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Router>
-      <div data-bs-theme="light">
+      <div data-bs-theme={theme}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/client" element={<ProtectedRoute role="client"><ClientDashboard /></ProtectedRoute>} />
+          <Route path="/admin" element={
+            <ProtectedRoute role="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/client" element={
+            <ProtectedRoute role="client">
+              <ClientDashboard />
+            </ProtectedRoute>
+          } />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </div>

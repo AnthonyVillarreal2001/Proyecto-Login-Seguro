@@ -2,6 +2,7 @@ const UserModel = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 const blacklist = require('../blacklist');
 const bcrypt = require('bcrypt');
+const { encryptFaceEmbedding, decryptFaceEmbedding } = require('../utils/encryption');
 
 const userController = {
   async register(req, res) {
@@ -31,20 +32,30 @@ const userController = {
     }
   },
   async login(req, res) {
-    const { email, fallbackPassword } = req.body;
+    const { email, password, fallbackPassword } = req.body;
+    
+    // Usar password si existe, si no usar fallbackPassword
+    const userPassword = password || fallbackPassword;
+    
     try {
       if (!email) return res.status(400).json({ error: 'Email requerido' });
+      
       const user = await UserModel.findUserByEmail(email);
       if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
 
-      if (fallbackPassword) {
-        const match = await bcrypt.compare(fallbackPassword, user.password_hash);
+      if (userPassword) {
+        const match = await bcrypt.compare(userPassword, user.password_hash);
         if (!match) return res.status(401).json({ error: 'Contraseña inválida' });
       } else {
         return res.status(400).json({ error: 'Se requiere contraseña para este login' });
       }
 
-      const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, 'secret_key', { expiresIn: '30m' });
+      const token = jwt.sign({ 
+        id: user.id, 
+        role: user.role, 
+        email: user.email 
+      }, 'secret_key', { expiresIn: '5m' });
+      
       res.json({ token, message: 'Login exitoso' });
     } catch (err) {
       console.error('Error en login:', err);
@@ -57,12 +68,24 @@ const userController = {
       const user = await UserModel.findUserByEmail(email);
       if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
 
-      const savedEmbedding = user.preferences?.faceEmbedding;
-      if (!savedEmbedding) return res.status(401).json({ error: 'No hay biometría registrada' });
+      const savedEncryptedEmbedding = user.preferences?.faceEmbedding;
+      if (!savedEncryptedEmbedding) {
+        return res.status(401).json({ error: 'No hay biometría registrada' });
+      }
 
+      //const savedEmbedding = user.preferences?.faceEmbedding; // ← Sin desencriptar
+      // DESENCRIPTAR el embedding guardado
+      const savedEmbedding = decryptFaceEmbedding(savedEncryptedEmbedding);
+      if (!savedEmbedding) {
+        return res.status(500).json({ error: 'Error al verificar biometría' });
+      }
       const distance = euclideanDistance(savedEmbedding, embedding);
       if (distance < 0.6) {
-        const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, 'secret_key', { expiresIn: '30m' });
+        const token = jwt.sign(
+          { id: user.id, role: user.role, email: user.email }, 
+          'secret_key', 
+          { expiresIn: '5m' }
+        );
         return res.json({ token, message: 'Login biométrico exitoso' });
       }
       return res.status(401).json({ error: 'Rostro no reconocido' });
@@ -113,6 +136,14 @@ const userController = {
   },
   async getProfile(req, res) {
     const user = await UserModel.findUserByEmail(req.user.email);
+    
+    // No devolver el embedding encriptado por seguridad
+    if (user && user.preferences) {
+      const safePreferences = { ...user.preferences };
+      delete safePreferences.faceEmbedding; // Eliminar del response
+      user.preferences = safePreferences;
+    }
+    
     res.json(user);
   },
   async updatePreferences(req, res) {
@@ -122,22 +153,29 @@ const userController = {
     res.json(updated);
   },
   async saveFaceEmbedding(req, res) {
-    const { embedding, password } = req.body;
-    try {
-      const user = await UserModel.findUserById(req.user.id);
-      if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+  const { embedding, password } = req.body;
+  try {
+    const user = await UserModel.findUserById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-      const match = await bcrypt.compare(password, user.password_hash);
-      if (!match) return res.status(401).json({ error: 'Contraseña inválida' });
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return res.status(401).json({ error: 'Contraseña inválida' });
 
-      const preferences = { ...user.preferences, faceEmbedding: embedding };
-      await UserModel.updateUser(user.id, { preferences });
+    // ENCRIPTAR el embedding antes de guardar
+    const encryptedEmbedding = encryptFaceEmbedding(embedding);
+    
+    const preferences = { 
+      ...user.preferences, 
+      faceEmbedding: encryptedEmbedding
+      //faceEmbedding: embedding
+    };
+    await UserModel.updateUser(user.id, { preferences });
 
-      res.json({ success: true, message: 'Biometría registrada' });
-    } catch (err) {
-      console.error('Error guardando biometría:', err);
-      res.status(500).json({ error: 'Error guardando biometría' });
-    }
+    res.json({ success: true, message: 'Biometría registrada y encriptada' });
+  } catch (err) {
+    console.error('Error guardando biometría:', err);
+    res.status(500).json({ error: 'Error guardando biometría' });
+  }
   },
   async removeFaceEmbedding(req, res) {
     const { password } = req.body;
@@ -171,6 +209,27 @@ const userController = {
     } catch (err) {
       console.error('Error en updateProfile:', err);
       res.status(500).json({ error: 'Error interno al actualizar perfil' });
+    }
+  },
+  // Agrega esta función en userController.js
+  async renewToken(req, res) {
+    try {
+      const user = await UserModel.findUserById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+      
+      // Crear nuevo token con 5 minutos más
+      const newToken = jwt.sign(
+        { id: user.id, role: user.role, email: user.email },
+        'secret_key',
+        { expiresIn: '5m' }
+      );
+      
+      res.json({ token: newToken, message: 'Token renovado' });
+    } catch (err) {
+      console.error('Error renovando token:', err);
+      res.status(500).json({ error: 'Error renovando sesión' });
     }
   }
 };

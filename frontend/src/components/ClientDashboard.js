@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ProfileSettings from './ProfileSettings';
 import { Button, Card, Form, Modal, Spinner } from 'react-bootstrap';
+import { initSessionManager } from '../utils/sessionManager';
 
 const ClientDashboard = () => {
   const [profile, setProfile] = useState(null);
@@ -13,6 +14,10 @@ const ClientDashboard = () => {
   const [password, setPassword] = useState('');
 
   useEffect(() => {
+    if (!window.sessionManager || !window.sessionManager.initialized) {
+      console.log('Inicializando SessionManager desde dashboard...');
+      initSessionManager();
+    }
     const fetchProfile = async () => {
       try {
         const res = await axios.get('/profile');

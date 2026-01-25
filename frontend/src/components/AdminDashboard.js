@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect  } from 'react';
 import axios from 'axios';
 import ProfileSettings from './ProfileSettings';
 import { Button, Card, Form, ListGroup, Modal, Spinner } from 'react-bootstrap';
+import { initSessionManager } from '../utils/sessionManager';
 
 const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
@@ -15,20 +16,24 @@ const AdminDashboard = () => {
     const [modalMessage, setModalMessage] = useState('');
 
     useEffect(() => {
-        fetchUsers();
-        loadPreferences();
-    }, []);
-
-    const loadPreferences = async () => {
-        try {
-        const res = await axios.get('/profile');
-        setPreferences(res.data.preferences || { theme: 'light', notifications: true });
-        // Aplicar tema inmediatamente
-        document.documentElement.setAttribute('data-bs-theme', preferences.theme);
-        } catch (err) {
-        console.error('Error cargando preferencias:', err);
+        if (!window.sessionManager || !window.sessionManager.initialized) {
+            console.log('Inicializando SessionManager desde dashboard...');
+            initSessionManager();
         }
-    };
+        const loadData = async () => {
+            await fetchUsers();
+            
+            // Cargar preferencias directamente aquí
+            try {
+                const res = await axios.get('/profile');
+                setPreferences(res.data.preferences || { theme: 'light', notifications: true });
+                document.documentElement.setAttribute('data-bs-theme', res.data.preferences?.theme || 'light');
+            } catch (err) {
+                console.error('Error cargando preferencias:', err);
+            }
+        };
+        loadData();
+    }, []);
     
     const fetchUsers = async (query = '') => {
         setLoading(true);
@@ -36,8 +41,8 @@ const AdminDashboard = () => {
         const res = await axios.get(`/users/search?query=${query}`);
         setUsers(res.data);
         } catch (err) {
-        setModalMessage('No pudimos cargar los usuarios. ¿El servidor está de siesta? 😴');
-        setShowErrorModal(true);
+            setModalMessage('No pudimos cargar los usuarios. ¿El servidor está de siesta? 😴');
+            setShowErrorModal(true);
         } finally {
         setLoading(false);
         }
