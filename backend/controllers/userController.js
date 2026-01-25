@@ -238,4 +238,7 @@ function euclideanDistance(arr1, arr2) {
   return Math.sqrt(arr1.reduce((sum, val, i) => sum + Math.pow(val - arr2[i], 2), 0));
 }
 
+// Adjuntar al objeto para que sea accesible en tests
+userController.euclideanDistance = euclideanDistance;
+
 module.exports = userController;
