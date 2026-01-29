@@ -12,7 +12,7 @@ const validateRegister = [
 ];
 const validateLogin = [
   body('email').isEmail().normalizeEmail(),
-  body('fallbackPassword').isString(), // ← Esto podría estar fallando
+  body('password').notEmpty().withMessage('La contraseña es requerida'), // Cambiar de fallbackPassword a password
   (req, res, next) => {
     console.log('Validating login:', req.body);
     const errors = validationResult(req);

@@ -43,6 +43,7 @@ app.post('/auth/register', authMiddleware(['admin']), validateRegister, userCont
 app.post('/auth/login', validateLogin, userController.login);
 app.post('/auth/biometric/login', userController.biometricLogin);
 app.post('/auth/logout', authMiddleware(), userController.logout);
+app.post('/auth/verify-face', userController.verifyFaceAfterPassword);
 app.get('/users', authMiddleware(['admin']), userController.getAllUsers);
 app.get('/users/search', authMiddleware(['admin']), validateSearch, userController.searchUsers);
 app.put('/users/:id', authMiddleware(['admin']), validateEditUser, userController.editUser);

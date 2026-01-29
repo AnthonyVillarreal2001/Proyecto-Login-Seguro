@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import * as faceapi from 'face-api.js';
-import { Button, Form, Modal } from 'react-bootstrap';
+import { Button, Form, Modal, Spinner, Card } from 'react-bootstrap';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -10,14 +10,14 @@ const Login = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
-  const [showBiometricModal, setShowBiometricModal] = useState(false);
+  const [showFaceModal, setShowFaceModal] = useState(false);
+  const [loginStep, setLoginStep] = useState('credentials'); // 'credentials' o 'face'
+  const [loading, setLoading] = useState(false);
   const videoRef = useRef(null);
-  const [cameraActive, setCameraActive] = useState(false);
   const navigate = useNavigate();
 
-  // Al inicio del componente Login, agrega:
+  // Verificar si venimos de logout
   useEffect(() => {
-    // Verificar si venimos de un logout por timeout
     const urlParams = new URLSearchParams(window.location.search);
     const reason = urlParams.get('reason');
     
@@ -37,17 +37,7 @@ const Login = () => {
       
       setModalMessage(message);
       setShowErrorModal(true);
-      
-      // Limpiar parámetro de URL
       window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    
-    // También verificar sessionStorage
-    const storedReason = sessionStorage.getItem('logoutReason');
-    if (storedReason) {
-      setModalMessage(storedReason);
-      setShowErrorModal(true);
-      sessionStorage.removeItem('logoutReason');
     }
   }, []);
 
@@ -58,7 +48,7 @@ const Login = () => {
       await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
       await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
     } catch (err) {
-      throw new Error('No se pudieron cargar los modelos de IA. Revisa tu conexión o los archivos en /public/models.');
+      throw new Error('No se pudieron cargar los modelos de IA.');
     }
   };
 
@@ -68,12 +58,11 @@ const Login = () => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
-        setCameraActive(true);
       }
     } catch (err) {
       setModalMessage('No se pudo acceder a la cámara. Revisa permisos.');
       setShowErrorModal(true);
-      setShowBiometricModal(false);
+      setShowFaceModal(false);
     }
   };
 
@@ -82,140 +71,206 @@ const Login = () => {
       const tracks = videoRef.current.srcObject.getTracks();
       tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
-      setCameraActive(false);
     }
   };
 
   const handlePasswordLogin = async () => {
-    if (!email.trim()) {
-      setModalMessage('¡Primero ingresa tu correo, por favor! 📧');
+    if (!email.trim() || !password.trim()) {
+      setModalMessage('Email y contraseña son obligatorios');
       setShowErrorModal(true);
       return;
     }
 
+    setLoading(true);
     try {
       const res = await axios.post('/auth/login', { 
         email, 
-        fallbackPassword: password  // ← Usa fallbackPassword
+        password // Enviar solo 'password', no 'fallbackPassword'
       });
-      
-      localStorage.setItem('token', res.data.token);
-      setModalMessage('¡Login exitoso con contraseña! Bienvenido de vuelta. 🎉');
-      setShowSuccessModal(true);
 
-      setTimeout(() => {
+      console.log('Respuesta del login:', res.data); // Para debug
+
+      // Si el login requiere verificación facial
+      if (res.data.requiresFaceVerification) {
+        setModalMessage('Contraseña válida. Ahora verifique su identidad facial.');
+        setShowSuccessModal(true);
+        
+        // Mostrar modal de verificación facial
+        setTimeout(() => {
+          setShowFaceModal(true);
+          startCamera();
+        }, 1500);
+        
+      } else if (res.data.token) {
+        // Si por alguna razón devuelve token directamente (backward compatibility)
+        localStorage.setItem('token', res.data.token);
         const role = JSON.parse(atob(res.data.token.split('.')[1])).role;
         navigate(role === 'admin' ? '/admin' : '/client');
-      }, 1800);
+      } else {
+        throw new Error('Respuesta inesperada del servidor');
+      }
+      
     } catch (err) {
-      const msg = err.response?.data?.error || 'Error al iniciar sesión. ¿Credenciales correctas?';
-      setModalMessage(msg);
+      console.error('Error completo en login:', err.response || err);
+      
+      // Manejar diferentes tipos de errores
+      if (err.response) {
+        const { status, data } = err.response;
+        
+        if (status === 400 && data.errors) {
+          // Error de validación
+          const validationErrors = data.errors.map(e => e.msg).join(', ');
+          setModalMessage(`Error de validación: ${validationErrors}`);
+        } else if (status === 403 && data.requiresBiometric) {
+          // Usuario no tiene biometría registrada
+          setModalMessage(data.error || 'Debe registrar su biometría facial primero.');
+        } else {
+          // Otros errores
+          setModalMessage(data.error || 'Error al iniciar sesión');
+        }
+      } else if (err.request) {
+        setModalMessage('No hay respuesta del servidor. Verifica que el backend esté corriendo.');
+      } else {
+        setModalMessage(err.message || 'Error desconocido');
+      }
+      
       setShowErrorModal(true);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleBiometricLogin = async () => {
-    if (!email.trim()) {
-      setModalMessage('¡Necesitas ingresar tu correo primero para usar biometría! 🧐');
-      setShowErrorModal(true);
-      return;
-    }
+  const verifyFace = async () => {
+    setLoading(true);
+    try {
+      await loadModels();
 
-    setShowBiometricModal(true);
-    await startCamera();
+      const detection = await faceapi
+        .detectSingleFace(videoRef.current)
+        .withFaceLandmarks()
+        .withFaceDescriptor();
 
-    // Iniciar detección después de 1.5–2 segundos
-    setTimeout(async () => {
-      try {
-        await loadModels();
+      if (!detection) {
+        throw new Error('No se detectó rostro. Asegúrate de estar bien iluminado.');
+      }
 
-        const detection = await faceapi
-          .detectSingleFace(videoRef.current)
-          .withFaceLandmarks()
-          .withFaceDescriptor();
+      const embedding = Array.from(detection.descriptor);
+      
+      // Enviar para verificación
+      const res = await axios.post('/auth/verify-face', { 
+        email, 
+        embedding 
+      });
 
-        if (!detection) {
-          throw new Error('No se detectó rostro. Asegúrate de estar bien iluminado y centrado.');
-        }
-
-        const embedding = Array.from(detection.descriptor);
-        const res = await axios.post('/auth/biometric/login', { email, embedding });
-
+      if (res.data.token) {
         localStorage.setItem('token', res.data.token);
-        setModalMessage('¡Reconocido! Login biométrico exitoso. 😎');
+        setModalMessage('¡Verificación facial exitosa! Bienvenido.');
         setShowSuccessModal(true);
-        setShowBiometricModal(false);
+        
+        // Detener cámara
         stopCamera();
-
+        setShowFaceModal(false);
+        
+        // Redirigir después de mostrar mensaje
         setTimeout(() => {
           const role = JSON.parse(atob(res.data.token.split('.')[1])).role;
           navigate(role === 'admin' ? '/admin' : '/client');
         }, 1500);
-      } catch (err) {
-        setModalMessage(err.message || 'No se pudo reconocer tu rostro.');
-        setShowErrorModal(true);
-        setShowBiometricModal(false);
-        stopCamera();
       }
-    }, 1800);
+      
+    } catch (err) {
+      setModalMessage(err.response?.data?.error || 'Error en verificación facial');
+      setShowErrorModal(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="container mt-5" style={{ maxWidth: '500px' }}>
-      <h2 className="text-center mb-4">Iniciar Sesión</h2>
+    <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
+      <Card style={{ maxWidth: '500px', width: '100%' }} className="shadow-lg">
+        <Card.Header className="bg-primary text-white text-center">
+          <h3 className="mb-0">Inicio de Sesión Biométrico</h3>
+        </Card.Header>
+        <Card.Body>
+          <p className="text-center text-muted mb-4">
+            Por seguridad, el inicio de sesión requiere verificación facial obligatoria
+          </p>
 
-      <Form>
-        <Form.Group className="mb-3">
-          <Form.Label>Correo electrónico</Form.Label>
-          <Form.Control
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value.trim())}
-            placeholder="tu@email.com"
-            aria-label="Correo electrónico"
-          />
-        </Form.Group>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Correo electrónico *</Form.Label>
+              <Form.Control
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value.trim())}
+                placeholder="tu@email.com"
+                required
+                disabled={loading}
+              />
+            </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Contraseña (opcional)</Form.Label>
-          <Form.Control
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
-            aria-label="Contraseña"
-          />
-        </Form.Group>
+            <Form.Group className="mb-4">
+              <Form.Label>Contraseña *</Form.Label>
+              <Form.Control
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                disabled={loading}
+              />
+            </Form.Group>
 
-        <div className="d-grid gap-2">
-          <Button variant="primary" size="lg" onClick={handlePasswordLogin}>
-            Iniciar con contraseña
-          </Button>
-          <Button variant="success" size="lg" onClick={handleBiometricLogin}>
-            Iniciar con rostro (biometría)
-          </Button>
-        </div>
-      </Form>
+            <div className="d-grid">
+              <Button 
+                variant="primary" 
+                size="lg" 
+                onClick={handlePasswordLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Spinner animation="border" size="sm" className="me-2" />
+                    Verificando...
+                  </>
+                ) : (
+                  '🔐 Verificar credenciales y continuar'
+                )}
+              </Button>
+            </div>
+          </Form>
 
-      <p className="text-center mt-3">
-        ¿No tienes cuenta? <a href="/register">Regístrate aquí</a>
-      </p>
+          <p className="text-center mt-3">
+            ¿No tienes cuenta? <a href="/register">Regístrate aquí</a>
+          </p>
+          <p className="text-center text-muted small">
+            * Después de ingresar email y contraseña, se requerirá verificación facial
+          </p>
+        </Card.Body>
+      </Card>
 
-      {/* Modal para login biométrico */}
+      {/* Modal para verificación facial */}
       <Modal
-        show={showBiometricModal}
+        show={showFaceModal}
         onHide={() => {
-          setShowBiometricModal(false);
+          setShowFaceModal(false);
           stopCamera();
         }}
         size="lg"
         centered
+        backdrop="static"
       >
         <Modal.Header closeButton>
-          <Modal.Title>Reconocimiento Facial</Modal.Title>
+          <Modal.Title>Verificación Facial Obligatoria</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center">
-          <p className="mb-3">Coloca tu rostro frente a la cámara y espera un momento...</p>
+          <p className="mb-3">
+            <strong>Paso 2 de 2: Verificación de identidad</strong>
+            <br />
+            Por seguridad, debemos verificar que eres tú. Mira directamente a la cámara.
+          </p>
+          
           <video
             ref={videoRef}
             autoPlay
@@ -224,24 +279,45 @@ const Login = () => {
               width: '100%',
               maxHeight: '400px',
               borderRadius: '12px',
-              border: '4px solid #28a745',
+              border: '4px solid #007bff',
               background: '#000'
             }}
           />
+          
+          <div className="mt-4">
+            <Button 
+              variant="success" 
+              size="lg" 
+              onClick={verifyFace}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Verificando rostro...
+                </>
+              ) : (
+                '✅ Verificar mi identidad'
+              )}
+            </Button>
+          </div>
+          
+          <div className="mt-3 text-muted small">
+            <p>Instrucciones:</p>
+            <ul className="list-unstyled">
+              <li>✓ Mantén tu rostro centrado</li>
+              <li>✓ Asegura buena iluminación</li>
+              <li>✓ No muevas la cabeza bruscamente</li>
+              <li>✓ Permanece frente a la cámara 2-3 segundos</li>
+            </ul>
+          </div>
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => {
-            setShowBiometricModal(false);
-            stopCamera();
-          }}>
-            Cancelar
-          </Button>
-        </Modal.Footer>
       </Modal>
-      {/* Modal de Éxito */}
+
+      {/* Modales de éxito/error */}
       <Modal show={showSuccessModal} onHide={() => setShowSuccessModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>¡Éxito!</Modal.Title>
+          <Modal.Title>¡Proceso completado!</Modal.Title>
         </Modal.Header>
         <Modal.Body>{modalMessage}</Modal.Body>
         <Modal.Footer>
@@ -251,7 +327,6 @@ const Login = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Modal de Error */}
       <Modal show={showErrorModal} onHide={() => setShowErrorModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>¡Atención!</Modal.Title>

@@ -18,24 +18,44 @@ const userController = {
     }
   },
   async publicRegister(req, res) {
-    const { name, email, password } = req.body;
+    const { name, email, password, embedding } = req.body; // Agregar embedding
+    
     try {
       const existingUser = await UserModel.findUserByEmail(email);
       if (existingUser) {
         return res.status(409).json({ error: 'Email ya registrado' });
       }
+
+      // Validar que venga el embedding
+      if (!embedding || !Array.isArray(embedding)) {
+        return res.status(400).json({ 
+          error: 'Registro facial obligatorio. Capture su rostro para completar el registro.' 
+        });
+      }
+
+      // Crear usuario
       const user = await UserModel.createUser(name.trim(), email.trim(), password, 'client');
-      res.status(201).json({ message: 'Registro exitoso. Ahora puedes iniciar sesión.' });
+      
+      // Encriptar y guardar embedding
+      const encryptedEmbedding = encryptFaceEmbedding(embedding);
+      const preferences = { 
+        ...(user.preferences || { theme: 'light', notifications: true }),
+        faceEmbedding: encryptedEmbedding
+      };
+      
+      await UserModel.updateUser(user.id, { preferences });
+      
+      res.status(201).json({ 
+        message: 'Registro exitoso con biometría facial. Ahora puede iniciar sesión.',
+        success: true 
+      });
     } catch (err) {
-      console.error('Error en registro público:', err);
+      console.error('Error en registro público biométrico:', err);
       res.status(500).json({ error: 'Error al registrar usuario' });
     }
   },
   async login(req, res) {
-    const { email, password, fallbackPassword } = req.body;
-    
-    // Usar password si existe, si no usar fallbackPassword
-    const userPassword = password || fallbackPassword;
+    const { email, password } = req.body;
     
     try {
       if (!email) return res.status(400).json({ error: 'Email requerido' });
@@ -43,20 +63,27 @@ const userController = {
       const user = await UserModel.findUserByEmail(email);
       if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
 
-      if (userPassword) {
-        const match = await bcrypt.compare(userPassword, user.password_hash);
-        if (!match) return res.status(401).json({ error: 'Contraseña inválida' });
-      } else {
-        return res.status(400).json({ error: 'Se requiere contraseña para este login' });
+      // Verificar contraseña
+      if (!password) return res.status(400).json({ error: 'Contraseña requerida' });
+      
+      const match = await bcrypt.compare(password, user.password_hash);
+      if (!match) return res.status(401).json({ error: 'Contraseña inválida' });
+
+      // Verificar si tiene biometría registrada
+      const savedEncryptedEmbedding = user.preferences?.faceEmbedding;
+      if (!savedEncryptedEmbedding) {
+        return res.status(403).json({ 
+          error: 'Biometría facial no registrada. Por favor, registre su rostro primero.',
+          requiresBiometric: true 
+        });
       }
 
-      const token = jwt.sign({ 
-        id: user.id, 
-        role: user.role, 
+      // Si tiene biometría, devolver información para el próximo paso
+      res.json({ 
+        message: 'Contraseña válida. Proceda con la verificación facial.',
+        requiresFaceVerification: true,
         email: user.email 
-      }, 'secret_key', { expiresIn: '5m' });
-      
-      res.json({ token, message: 'Login exitoso' });
+      });
     } catch (err) {
       console.error('Error en login:', err);
       res.status(500).json({ error: 'Error interno' });
@@ -231,10 +258,59 @@ const userController = {
       console.error('Error renovando token:', err);
       res.status(500).json({ error: 'Error renovando sesión' });
     }
-  }
+  },
+  async verifyFaceAfterPassword(req, res) {
+    const { email, embedding } = req.body;
+    
+    try {
+      const user = await UserModel.findUserByEmail(email);
+      if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
+
+      const savedEncryptedEmbedding = user.preferences?.faceEmbedding;
+      if (!savedEncryptedEmbedding) {
+        return res.status(401).json({ error: 'No hay biometría registrada' });
+      }
+
+      // Desencriptar el embedding guardado
+      const savedEmbedding = decryptFaceEmbedding(savedEncryptedEmbedding);
+      if (!savedEmbedding) {
+        return res.status(500).json({ error: 'Error al verificar biometría' });
+      }
+      
+      const distance = euclideanDistance(savedEmbedding, embedding);
+      if (distance < 0.6) {
+        const token = jwt.sign(
+          { id: user.id, role: user.role, email: user.email }, 
+          'secret_key', 
+          { expiresIn: '5m' }
+        );
+        return res.json({ 
+          token, 
+          message: 'Login biométrico exitoso',
+          user: { id: user.id, name: user.name, role: user.role }
+        });
+      }
+      return res.status(401).json({ error: 'Rostro no reconocido' });
+    } catch (err) {
+      console.error('Error en verificación facial:', err);
+      res.status(500).json({ error: 'Error interno' });
+    }
+  },
 };
 
 function euclideanDistance(arr1, arr2) {
+  if (!Array.isArray(arr1) || !Array.isArray(arr2)) {
+    throw new Error('Ambos parámetros deben ser arrays');
+  }
+  
+  if (arr1.length !== arr2.length) {
+    throw new Error(`Los arrays deben tener la misma longitud. Recibido: ${arr1.length} vs ${arr2.length}`);
+  }
+  
+  if (arr1.length === 0 && arr2.length === 0) {
+    return 0;
+  }
+  
   return Math.sqrt(arr1.reduce((sum, val, i) => sum + Math.pow(val - arr2[i], 2), 0));
 }
 
