@@ -6,3 +6,12 @@ frontend/package-lock.json
 frontend/.env
 /backend/.idea
 /frontend/.idea
+node_modules
+.next
+.venv
+*.joblib
+__pycache__
+.DS_Store
+*.pyc
+.vscode
+package-lock.json
