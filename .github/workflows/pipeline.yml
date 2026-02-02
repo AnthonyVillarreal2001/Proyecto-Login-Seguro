@@ -84,7 +84,7 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         title: "🚨 Vulnerabilidad detectada en PR #${{ github.event.pull_request.number }}"
-        body: |
+        content-filepath: |
           Se detectó una vulnerabilidad:
           - Archivo: **${{ steps.pickfile.outputs.file_to_scan }}**
           - Estado: **${{ steps.parse.outputs.status }}**
