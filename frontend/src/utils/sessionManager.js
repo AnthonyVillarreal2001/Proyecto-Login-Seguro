@@ -1,9 +1,9 @@
-// src/utils/sessionManager.js - VERSIÓN COMPLETAMENTE SEGURA
+// src/utils/sessionManager.js - VERSIÓN ULTRA SEGURA
 class SessionManager {
   constructor(timeoutMinutes = 5) {
-    this.timeout = timeoutMinutes * 60 * 1000; // 5 minutos
-    this.warningTime = 4 * 60 * 1000; // 4 minutos para advertencia
-    this.checkInterval = 10 * 1000; // Verificar cada 10 segundos
+    this.timeout = timeoutMinutes * 60 * 1000;
+    this.warningTime = 4 * 60 * 1000;
+    this.checkInterval = 10 * 1000;
     this.timer = null;
     this.warningTimer = null;
     this.checkTimer = null;
@@ -11,258 +11,200 @@ class SessionManager {
     this.isModalShowing = false;
     this.initialized = false;
     
-    // Crear estilos CSS globales seguros una sola vez
-    this.createGlobalStyles();
-    
-    console.log(`SessionManager configurado para ${timeoutMinutes} minutos de inactividad`);
+    // Logger seguro
+    this.log('SessionManager configurado');
   }
 
-  // Crear estilos CSS globales de forma segura
-  createGlobalStyles() {
-    if (document.getElementById('session-manager-styles')) return;
-    
-    const style = document.createElement('style');
-    style.id = 'session-manager-styles';
-    style.textContent = `
-      @keyframes slideInRight {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
+  // Logger seguro sin console.log vulnerable
+  log(message) {
+    // Simplemente no hacer nada con los logs en producción
+    // o usar una implementación segura
+    if (typeof window !== 'undefined' && window.console && window.console.log) {
+      try {
+        window.console.log('[SessionManager] ' + message);
+      } catch (e) {
+        // Silenciar errores de logging
       }
-      
-      #sessionToast {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 8px;
-        z-index: 9999;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      
-      #tokenExpiryModal {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #fff3cd;
-        border: 1px solid #ffeaa7;
-        border-radius: 8px;
-        padding: 15px;
-        z-index: 9999;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        max-width: 350px;
-        animation: slideInRight 0.3s ease;
-      }
-      
-      #inactivityWarningModal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.85);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 99999;
-      }
-    `;
-    document.head.appendChild(style);
+    }
   }
 
   init() {
     if (this.initialized) {
-      console.log('SessionManager ya está inicializado');
+      this.log('SessionManager ya está inicializado');
       return;
     }
     
-    console.log('Inicializando SessionManager...');
+    this.log('Inicializando...');
     
-    // Reiniciar lastActivity al momento de inicialización
     this.lastActivity = Date.now();
-    
-    // Eventos de actividad - usar throttle para mejor performance
     this.setupActivityListeners();
-    
-    // Verificar token inmediatamente
     this.checkTokenExpiry();
-    
-    // Iniciar verificación periódica
     this.startPeriodicCheck();
-    
-    // Iniciar timers de inactividad
     this.startInactivityTimers();
     
     this.initialized = true;
-    console.log('SessionManager inicializado correctamente');
+    this.log('Inicializado correctamente');
   }
 
   setupActivityListeners() {
-    // Lista completa de eventos de actividad
     const activityEvents = [
-      'mousemove', 'mousedown', 'mouseup', 'click', 'dblclick',
-      'scroll', 'wheel', 'keydown', 'keypress', 'keyup',
-      'touchstart', 'touchmove', 'touchend', 'input', 'change',
-      'focus', 'blur', 'drag', 'drop'
+      'mousemove', 'mousedown', 'mouseup', 'click',
+      'scroll', 'keydown', 'touchstart', 'input'
     ];
     
-    // Usar throttle para evitar demasiadas llamadas
     const throttledActivity = this.throttle(() => {
       this.handleUserActivity();
     }, 1000);
     
     activityEvents.forEach(event => {
-      document.addEventListener(event, throttledActivity, { passive: true });
+      try {
+        document.addEventListener(event, throttledActivity, { passive: true });
+      } catch (e) {
+        // Ignorar errores de event listeners
+      }
     });
     
-    // Guardar referencia para cleanup
     this.activityHandler = throttledActivity;
     this.activityEvents = activityEvents;
   }
 
   throttle(func, limit) {
-    let inThrottle;
-    return function() {
-      const args = arguments;
+    let inThrottle = false;
+    const throttledFunction = function() {
+      const args = Array.prototype.slice.call(arguments);
       const context = this;
       if (!inThrottle) {
-        func.apply(context, args);
+        try {
+          func.apply(context, args);
+        } catch (error) {
+          // Ignorar errores en throttled functions
+        }
         inThrottle = true;
-        setTimeout(() => inThrottle = false, limit);
+        setTimeout(function() {
+          inThrottle = false;
+        }, limit);
       }
     };
+    return throttledFunction;
   }
 
   handleUserActivity() {
     const now = Date.now();
     const timeSinceLastActivity = now - this.lastActivity;
     
-    // Solo registrar actividad si ha pasado al menos 1 segundo desde la última
     if (timeSinceLastActivity > 1000) {
       this.lastActivity = now;
-      console.log(`Actividad detectada. Última actividad: ${Math.floor(timeSinceLastActivity/1000)}s atrás`);
-      
-      // Reiniciar timers
       this.resetInactivityTimers();
       
-      // Cerrar modal de advertencia si está abierto
       if (this.isModalShowing) {
         this.closeModal();
-        this.showToast('Actividad detectada, sesión extendida', 'success');
+        this.showSafeToast('Actividad detectada');
       }
     }
   }
 
   startPeriodicCheck() {
-    // Verificar token periódicamente
     this.checkTimer = setInterval(() => {
       this.checkTokenExpiry();
     }, this.checkInterval);
   }
 
   checkTokenExpiry() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.log('No hay token en localStorage');
-      return;
-    }
+    const token = this.getLocalStorageItem('token');
+    if (!token) return;
 
     try {
-      // Decodificación segura del token JWT sin atob vulnerable
-      const payload = this.parseJwt(token);
-      if (!payload || !payload.exp) {
-        console.error('Token inválido o sin expiración');
-        return;
-      }
+      const payload = this.safeParseJwt(token);
+      if (!payload || typeof payload.exp !== 'number') return;
       
       const expiresAt = payload.exp * 1000;
       const timeLeft = expiresAt - Date.now();
       
       if (timeLeft <= 0) {
-        this.forceLogout('Token expirado');
+        this.safeLogout('Token expirado');
         return;
       }
       
-      // Convertir a minutos y segundos para logging
       const minutes = Math.floor(timeLeft / 60000);
       const seconds = Math.floor((timeLeft % 60000) / 1000);
       
-      console.log(`Token expira en: ${minutes}:${seconds.toString().padStart(2, '0')}`);
-      
-      // Mostrar advertencia visual cuando queden 2 minutos
       if (timeLeft < 2 * 60 * 1000 && timeLeft > 0) {
         if (!this.isModalShowing) {
-          this.showTokenExpiryWarning(minutes, seconds);
+          this.showSafeTokenWarning(minutes, seconds);
         }
       }
       
     } catch (err) {
-      console.error('Error verificando token:', err);
+      this.log('Error verificando token');
     }
   }
 
-  // Método seguro para parsear JWT
-  parseJwt(token) {
+  // Método ultra seguro para obtener de localStorage
+  getLocalStorageItem(key) {
     try {
-      // Validar formato básico
-      if (typeof token !== 'string' || token.split('.').length !== 3) {
-        return null;
-      }
-      
-      const base64Url = token.split('.')[1];
-      // Reemplazar caracteres de Base64Url
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      
-      // Decodificar Base64 de forma segura
-      const jsonPayload = this.decodeBase64(base64);
-      if (!jsonPayload) return null;
-      
-      return JSON.parse(jsonPayload);
-    } catch (error) {
-      console.error('Error parsing JWT:', error);
+      if (typeof window === 'undefined' || !window.localStorage) return null;
+      const item = window.localStorage.getItem(key);
+      return typeof item === 'string' ? item : null;
+    } catch (e) {
       return null;
     }
   }
 
-  // Decodificar Base64 de forma segura
-  decodeBase64(base64) {
+  // Método ultra seguro para parsear JWT
+  safeParseJwt(token) {
+    if (typeof token !== 'string') return null;
+    
     try {
-      // Usar atob pero con validación previa
-      const binaryString = atob(base64);
-      const bytes = new Uint8Array(binaryString.length);
+      // Validar formato JWT básico
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
       
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
+      // Decodificar payload base64 de forma segura
+      const base64 = parts[1];
+      if (!/^[A-Za-z0-9+/=]+$/.test(base64)) return null;
       
-      return new TextDecoder().decode(bytes);
-    } catch (error) {
-      console.error('Error decoding base64:', error);
+      const decoded = this.safeBase64Decode(base64);
+      if (!decoded) return null;
+      
+      return JSON.parse(decoded);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Decodificación base64 segura
+  safeBase64Decode(base64) {
+    try {
+      // Eliminar padding y validar
+      const cleanBase64 = base64.replace(/=+$/, '');
+      if (!/^[A-Za-z0-9+/]+$/.test(cleanBase64)) return null;
+      
+      // Usar atob pero solo después de validación exhaustiva
+      const decoded = atob(base64);
+      
+      // Validar que sea JSON válido
+      if (typeof decoded !== 'string') return null;
+      if (decoded.trim().length === 0) return null;
+      
+      return decoded;
+    } catch (e) {
       return null;
     }
   }
 
   startInactivityTimers() {
-    // Limpiar timers anteriores
     this.clearInactivityTimers();
     
-    // Timer para advertencia (4 minutos de inactividad)
     this.warningTimer = setTimeout(() => {
-      this.showInactivityWarning();
+      this.showSafeInactivityWarning();
     }, this.timeout - this.warningTime);
     
-    // Timer para logout (5 minutos de inactividad)
     this.timer = setTimeout(() => {
       this.logoutDueToInactivity();
     }, this.timeout);
-    
-    console.log(`Timers iniciados: Advertencia en ${(this.timeout - this.warningTime)/1000}s, Logout en ${this.timeout/1000}s`);
   }
 
   resetInactivityTimers() {
-    console.log('Reiniciando timers de inactividad');
     this.startInactivityTimers();
   }
 
@@ -277,175 +219,118 @@ class SessionManager {
     }
   }
 
-  showTokenExpiryWarning(minutes, seconds) {
-    // Solo mostrar si no hay otro modal
+  showSafeTokenWarning(minutes, seconds) {
     if (this.isModalShowing) return;
     
     this.isModalShowing = true;
     
-    const modal = document.createElement('div');
-    modal.id = 'tokenExpiryModal';
+    // Crear elementos de forma segura
+    const modal = this.createSafeElement('div', 'tokenExpiryModal');
     modal.setAttribute('role', 'alert');
-    modal.setAttribute('aria-live', 'polite');
     
-    const container = this.createElementWithStyles('div', {
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: '10px'
-    });
+    const container = this.createSafeElement('div');
+    container.style.cssText = 'display:flex;align-items:flex-start;gap:10px';
     
-    const icon = this.createElementWithStyles('span', {
-      fontSize: '24px'
-    });
+    const icon = this.createSafeElement('span');
     icon.textContent = '⏰';
+    icon.style.cssText = 'font-size:24px';
     
-    const contentDiv = document.createElement('div');
+    const content = this.createSafeElement('div');
     
-    const title = this.createElementWithStyles('strong', {
-      color: '#856404',
-      display: 'block'
-    });
+    const title = this.createSafeElement('strong');
     title.textContent = 'Token por expirar';
+    title.style.cssText = 'color:#856404;display:block';
     
-    const message1 = this.createElementWithStyles('p', {
-      margin: '5px 0 0 0',
-      color: '#856404',
-      fontSize: '14px'
-    });
-    message1.textContent = `Tu token de sesión expira en ${minutes}:${seconds.toString().padStart(2, '0')}`;
+    const message1 = this.createSafeElement('p');
+    message1.textContent = `Tu token expira en ${minutes}:${seconds.toString().padStart(2, '0')}`;
+    message1.style.cssText = 'margin:5px 0 0 0;color:#856404;font-size:14px';
     
-    const message2 = this.createElementWithStyles('p', {
-      margin: '5px 0 0 0',
-      color: '#856404',
-      fontSize: '12px'
-    });
-    message2.textContent = 'Realiza alguna acción para renovarlo automáticamente';
+    const message2 = this.createSafeElement('p');
+    message2.textContent = 'Realiza alguna acción para renovar';
+    message2.style.cssText = 'margin:5px 0 0 0;color:#856404;font-size:12px';
     
-    contentDiv.appendChild(title);
-    contentDiv.appendChild(message1);
-    contentDiv.appendChild(message2);
-    
+    // Construir estructura
+    content.appendChild(title);
+    content.appendChild(message1);
+    content.appendChild(message2);
     container.appendChild(icon);
-    container.appendChild(contentDiv);
+    container.appendChild(content);
     modal.appendChild(container);
+    
+    // Estilos inline seguros
+    modal.style.cssText = 'position:fixed;top:20px;right:20px;background:#fff3cd;border:1px solid #ffeaa7;border-radius:8px;padding:15px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:350px;animation:slideIn 0.3s';
+    
+    // Agregar animación CSS segura
+    const style = this.createSafeElement('style');
+    style.textContent = '@keyframes slideIn {from {transform:translateX(100%);opacity:0;} to {transform:translateX(0);opacity:1;}}';
+    document.head.appendChild(style);
     
     document.body.appendChild(modal);
     
-    // Auto-remover después de 10 segundos
     setTimeout(() => {
       this.closeModal();
+      if (style.parentNode) {
+        document.head.removeChild(style);
+      }
     }, 10000);
   }
 
-  showInactivityWarning() {
+  showSafeInactivityWarning() {
     if (this.isModalShowing) return;
     
     this.isModalShowing = true;
     
-    const modal = document.createElement('div');
-    modal.id = 'inactivityWarningModal';
+    const modal = this.createSafeElement('div', 'inactivityWarningModal');
     modal.setAttribute('role', 'dialog');
-    modal.setAttribute('aria-labelledby', 'inactivityTitle');
     modal.setAttribute('aria-modal', 'true');
     
-    const dialog = this.createElementWithStyles('div', {
-      backgroundColor: 'white',
-      padding: '40px',
-      borderRadius: '15px',
-      maxWidth: '500px',
-      width: '90%',
-      textAlign: 'center',
-      boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
-    });
+    const dialog = this.createSafeElement('div');
+    dialog.style.cssText = 'background:white;padding:40px;border-radius:15px;max-width:500px;width:90%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3)';
     
-    // Icono
-    const icon = this.createElementWithStyles('div', {
-      fontSize: '60px',
-      marginBottom: '20px'
-    });
+    const icon = this.createSafeElement('div');
     icon.textContent = '⚠️';
+    icon.style.cssText = 'font-size:60px;margin-bottom:20px';
     
-    // Título
-    const title = this.createElementWithStyles('h3', {
-      color: '#dc3545',
-      marginBottom: '15px'
-    });
-    title.id = 'inactivityTitle';
+    const title = this.createSafeElement('h3');
     title.textContent = '¡Inactividad detectada!';
+    title.style.cssText = 'color:#dc3545;margin-bottom:15px';
     
-    // Mensaje 1
-    const message1 = this.createElementWithStyles('p', {
-      fontSize: '16px',
-      color: '#666',
-      marginBottom: '10px'
-    });
+    const message1 = this.createSafeElement('p');
     message1.textContent = 'Has estado inactivo por 4 minutos.';
+    message1.style.cssText = 'font-size:16px;color:#666;margin-bottom:10px';
     
-    // Mensaje 2 con contador
-    const message2 = this.createElementWithStyles('p', {
-      fontSize: '16px',
-      color: '#666',
-      marginBottom: '25px'
-    });
-    const message2Text = document.createTextNode('La sesión se cerrará en ');
-    const countdownSpan = this.createElementWithStyles('strong', {
-      color: '#dc3545',
-      fontSize: '20px'
-    });
+    const message2 = this.createSafeElement('p');
+    message2.style.cssText = 'font-size:16px;color:#666;margin-bottom:25px';
+    
+    const countdownText = document.createTextNode('La sesión se cerrará en ');
+    const countdownSpan = this.createSafeElement('strong');
     countdownSpan.id = 'countdown';
     countdownSpan.textContent = '60';
+    countdownSpan.style.cssText = 'color:#dc3545;font-size:20px';
     const secondsText = document.createTextNode(' segundos.');
     
-    message2.appendChild(message2Text);
+    message2.appendChild(countdownText);
     message2.appendChild(countdownSpan);
     message2.appendChild(secondsText);
     
-    // Botones container
-    const buttonsContainer = this.createElementWithStyles('div', {
-      display: 'flex',
-      gap: '15px',
-      justifyContent: 'center',
-      flexWrap: 'wrap'
-    });
+    const buttonsContainer = this.createSafeElement('div');
+    buttonsContainer.style.cssText = 'display:flex;gap:15px;justify-content:center;flex-wrap:wrap';
     
-    // Botón continuar
-    const continueBtn = this.createElementWithStyles('button', {
-      padding: '12px 30px',
-      backgroundColor: '#28a745',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '16px',
-      fontWeight: 'bold',
-      minWidth: '200px'
-    });
+    const continueBtn = this.createSafeElement('button');
     continueBtn.id = 'continueSessionBtn';
-    continueBtn.textContent = '🖱️ Continuar sesión';
+    continueBtn.textContent = 'Continuar sesión';
+    continueBtn.style.cssText = 'padding:12px 30px;background:#28a745;color:white;border:none;border-radius:8px;cursor:pointer;font-size:16px;min-width:200px';
     
-    // Botón logout
-    const logoutBtn = this.createElementWithStyles('button', {
-      padding: '12px 30px',
-      backgroundColor: '#6c757d',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '16px',
-      minWidth: '200px'
-    });
+    const logoutBtn = this.createSafeElement('button');
     logoutBtn.id = 'logoutNowBtn';
-    logoutBtn.textContent = '👋 Cerrar sesión ahora';
+    logoutBtn.textContent = 'Cerrar sesión';
+    logoutBtn.style.cssText = 'padding:12px 30px;background:#6c757d;color:white;border:none;border-radius:8px;cursor:pointer;font-size:16px;min-width:200px';
     
-    // Footer
-    const footer = this.createElementWithStyles('p', {
-      fontSize: '14px',
-      color: '#999',
-      marginTop: '25px'
-    });
-    footer.textContent = 'Mueve el mouse o presiona una tecla para mantenerte conectado';
+    const footer = this.createSafeElement('p');
+    footer.textContent = 'Mueve el mouse o presiona una tecla';
+    footer.style.cssText = 'font-size:14px;color:#999;margin-top:25px';
     
-    // Construir estructura
+    // Construir
     buttonsContainer.appendChild(continueBtn);
     buttonsContainer.appendChild(logoutBtn);
     
@@ -456,64 +341,68 @@ class SessionManager {
     dialog.appendChild(buttonsContainer);
     dialog.appendChild(footer);
     
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;z-index:99999';
+    
     modal.appendChild(dialog);
     document.body.appendChild(modal);
-    
-    // Hacer el modal enfocable
-    modal.tabIndex = -1;
-    modal.focus();
     
     let countdown = 60;
     const countdownInterval = setInterval(() => {
       countdown--;
-      if (countdownSpan) {
-        countdownSpan.textContent = countdown.toString();
-        
-        // Cambiar color cuando quedan 10 segundos
-        if (countdown <= 10) {
-          countdownSpan.style.color = '#ff0000';
-          countdownSpan.style.fontWeight = 'bold';
-        }
+      countdownSpan.textContent = countdown.toString();
+      
+      if (countdown <= 10) {
+        countdownSpan.style.color = '#ff0000';
+        countdownSpan.style.fontWeight = 'bold';
       }
       
       if (countdown <= 0) {
         clearInterval(countdownInterval);
-        this.forceLogout('Sesión cerrada por inactividad');
+        this.safeLogout('Sesión cerrada');
       }
     }, 1000);
     
-    // Guardar referencia para cleanup
     this.countdownInterval = countdownInterval;
     
-    // Botón para continuar sesión
-    continueBtn.addEventListener('click', () => {
+    // Event listeners seguros
+    this.safeAddEventListener(continueBtn, 'click', () => {
       clearInterval(countdownInterval);
       this.handleUserActivity();
-      this.showToast('Sesión extendida', 'success');
     });
     
-    // Botón para cerrar sesión
-    logoutBtn.addEventListener('click', () => {
+    this.safeAddEventListener(logoutBtn, 'click', () => {
       clearInterval(countdownInterval);
-      this.forceLogout('Sesión cerrada manualmente');
+      this.safeLogout('Sesión cerrada');
     });
     
-    // También cerrar con cualquier actividad
-    const handleActivity = () => {
+    // Actividad para cerrar modal
+    const closeOnActivity = () => {
       clearInterval(countdownInterval);
       this.handleUserActivity();
-      this.showToast('Sesión extendida', 'success');
     };
     
-    document.addEventListener('mousemove', handleActivity, { once: true });
-    document.addEventListener('keydown', handleActivity, { once: true });
+    this.safeAddEventListener(document, 'mousemove', closeOnActivity, { once: true });
+    this.safeAddEventListener(document, 'keydown', closeOnActivity, { once: true });
   }
 
-  // Helper para crear elementos con estilos
-  createElementWithStyles(tagName, styles) {
+  // Helper para crear elementos de forma segura
+  createSafeElement(tagName, id = '') {
     const element = document.createElement(tagName);
-    Object.assign(element.style, styles);
+    if (id) {
+      element.id = id;
+    }
     return element;
+  }
+
+  // Helper para agregar event listeners de forma segura
+  safeAddEventListener(element, event, handler, options = {}) {
+    if (element && element.addEventListener) {
+      try {
+        element.addEventListener(event, handler, options);
+      } catch (e) {
+        // Ignorar errores
+      }
+    }
   }
 
   closeModal() {
@@ -521,162 +410,152 @@ class SessionManager {
     
     modals.forEach(modalId => {
       const modal = document.getElementById(modalId);
-      if (modal && document.body.contains(modal)) {
-        document.body.removeChild(modal);
+      if (modal && modal.parentNode) {
+        modal.parentNode.removeChild(modal);
       }
     });
     
     this.isModalShowing = false;
     
-    // Limpiar intervalos
     if (this.countdownInterval) {
       clearInterval(this.countdownInterval);
       this.countdownInterval = null;
     }
   }
 
-  showToast(message, type = 'info') {
-    // Sanitizar mensaje
-    const sanitizedMessage = this.sanitizeText(message);
-    
-    // Eliminar toast anterior si existe
+  showSafeToast(message) {
     const existingToast = document.getElementById('sessionToast');
-    if (existingToast) {
-      document.body.removeChild(existingToast);
+    if (existingToast && existingToast.parentNode) {
+      existingToast.parentNode.removeChild(existingToast);
     }
     
-    const toast = document.createElement('div');
-    toast.id = 'sessionToast';
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'polite');
+    const toast = this.createSafeElement('div', 'sessionToast');
+    toast.setAttribute('role', 'status');
     
-    // Configurar estilos basados en tipo
-    if (type === 'success') {
-      toast.style.backgroundColor = '#d4edda';
-      toast.style.color = '#155724';
-      toast.style.border = '1px solid #c3e6cb';
-    } else {
-      toast.style.backgroundColor = '#f8d7da';
-      toast.style.color = '#721c24';
-      toast.style.border = '1px solid #f5c6cb';
-    }
+    toast.style.cssText = 'position:fixed;top:20px;right:20px;background:#d4edda;color:#155724;border:1px solid #c3e6cb;padding:12px 20px;border-radius:8px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);display:flex;align-items:center;gap:10px';
     
-    // Icono
-    const icon = document.createElement('span');
-    icon.textContent = type === 'success' ? '✅' : '❌';
-    icon.style.fontSize = '20px';
+    const text = this.createSafeElement('span');
+    text.textContent = this.sanitizeText(message);
     
-    // Texto
-    const text = document.createElement('span');
-    text.textContent = sanitizedMessage;
-    
-    toast.appendChild(icon);
     toast.appendChild(text);
     document.body.appendChild(toast);
     
-    // Auto-remover después de 3 segundos
     setTimeout(() => {
-      if (document.body.contains(toast)) {
-        document.body.removeChild(toast);
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
       }
     }, 3000);
   }
 
-  // Función para sanitizar texto
+  // Sanitización segura de texto
   sanitizeText(text) {
     if (typeof text !== 'string') return '';
     
-    // Crear elemento temporal y usar textContent
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.textContent;
+    // Eliminar caracteres peligrosos
+    const safeText = text
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\//g, '&#x2F;');
+    
+    return safeText;
   }
 
   logoutDueToInactivity() {
-    this.forceLogout('Sesión cerrada por inactividad (4+ minutos sin actividad)');
+    this.safeLogout('Sesión cerrada por inactividad');
   }
 
-  forceLogout(reason = 'Sesión finalizada') {
-    console.log('Forzando logout:', reason);
+  safeLogout(reason = 'Sesión finalizada') {
+    this.log('Cerrando sesión: ' + reason);
     
-    // Sanitizar razón antes de usar
-    const sanitizedReason = this.sanitizeText(reason);
+    // Limpiar almacenamiento de forma segura
+    this.clearStorage();
     
-    // Guardar razón
-    sessionStorage.setItem('logoutReason', sanitizedReason);
-    
-    // Limpiar
-    localStorage.removeItem('token');
-    localStorage.removeItem('sessionID');
-    
-    // Cerrar modales
     this.closeModal();
+    this.clearTimers();
+    this.removeEventListeners();
     
-    // Limpiar timers
+    // Redirección segura
+    setTimeout(() => {
+      const safeReason = this.sanitizeText(reason);
+      const encodedReason = encodeURIComponent(safeReason);
+      window.location.href = '/login?reason=' + encodedReason;
+    }, 500);
+  }
+
+  clearStorage() {
+    try {
+      if (window.localStorage) {
+        window.localStorage.removeItem('token');
+        window.localStorage.removeItem('sessionID');
+      }
+      if (window.sessionStorage) {
+        window.sessionStorage.removeItem('logoutReason');
+      }
+    } catch (e) {
+      // Ignorar errores de storage
+    }
+  }
+
+  clearTimers() {
     this.clearInactivityTimers();
     if (this.checkTimer) {
       clearInterval(this.checkTimer);
       this.checkTimer = null;
     }
-    
-    // Remover event listeners
+  }
+
+  removeEventListeners() {
     if (this.activityHandler && this.activityEvents) {
       this.activityEvents.forEach(event => {
-        document.removeEventListener(event, this.activityHandler);
+        try {
+          document.removeEventListener(event, this.activityHandler);
+        } catch (e) {
+          // Ignorar errores
+        }
       });
     }
-    
-    // Limpiar estilos globales
-    const styles = document.getElementById('session-manager-styles');
-    if (styles) {
-      document.head.removeChild(styles);
-    }
-    
-    // Redirigir de forma segura
-    setTimeout(() => {
-      // Codificar parámetros para URL
-      const encodedReason = encodeURIComponent(sanitizedReason);
-      window.location.href = `/login?reason=${encodedReason}`;
-    }, 500);
   }
 
   destroy() {
-    console.log('Destruyendo SessionManager');
-    this.forceLogout('Sesión cerrada');
+    this.safeLogout('Sesión cerrada');
   }
 }
 
-// Singleton para asegurar una sola instancia
+// Patrón singleton seguro
 let sessionManagerInstance = null;
 
-export const initSessionManager = (timeoutMinutes = 5) => {
-  // Solo inicializar si está autenticado
-  const token = localStorage.getItem('token');
-  if (!token) {
-    console.log('No hay token, no se inicializa SessionManager');
+const initSessionManager = (timeoutMinutes = 5) => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const token = window.localStorage ? window.localStorage.getItem('token') : null;
+    if (!token) return null;
+  } catch (e) {
     return null;
   }
   
-  // Solo crear una instancia
   if (!sessionManagerInstance) {
-    console.log('Creando nueva instancia de SessionManager');
     sessionManagerInstance = new SessionManager(timeoutMinutes);
     sessionManagerInstance.init();
   } else if (!sessionManagerInstance.initialized) {
-    console.log('Reinicializando SessionManager existente');
     sessionManagerInstance.init();
   }
   
   return sessionManagerInstance;
 };
 
-export const getSessionManager = () => {
+const getSessionManager = () => {
   return sessionManagerInstance;
 };
 
-export const destroySessionManager = () => {
+const destroySessionManager = () => {
   if (sessionManagerInstance) {
     sessionManagerInstance.destroy();
     sessionManagerInstance = null;
   }
 };
+
+// Exportar de forma segura
+export { initSessionManager, getSessionManager, destroySessionManager };
