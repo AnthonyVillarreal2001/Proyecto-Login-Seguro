@@ -9,7 +9,6 @@ frontend/.env
 node_modules
 .next
 .venv
-*.joblib
 __pycache__
 .DS_Store
 *.pyc
