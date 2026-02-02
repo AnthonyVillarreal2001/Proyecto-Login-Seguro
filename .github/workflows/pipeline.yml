@@ -78,23 +78,19 @@ jobs:
         echo "status=$STATUS" >> $GITHUB_OUTPUT
         echo "prob=$PROB" >> $GITHUB_OUTPUT
 
-    - name: Create issue body file
-      if: steps.parse.outputs.status == 'VULNERABLE'
-      run: |
-        echo "Se detectó una vulnerabilidad:" > issue-body.md
-        echo "- Archivo: **${{ steps.pickfile.outputs.file_to_scan }}**" >> issue-body.md
-        echo "- Estado: **${{ steps.parse.outputs.status }}**" >> issue-body.md
-        echo "- Probabilidad: **${{ steps.parse.outputs.prob }}**" >> issue-body.md
-        echo "" >> issue-body.md
-        echo "El merge fue bloqueado automáticamente." >> issue-body.md
-
     - name: Create issue if vulnerable
       if: steps.parse.outputs.status == 'VULNERABLE'
       uses: peter-evans/create-issue-from-file@v5
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         title: "🚨 Vulnerabilidad detectada en PR #${{ github.event.pull_request.number }}"
-        content-filepath: issue-body.md
+        body: |
+          Se detectó una vulnerabilidad:
+          - Archivo: **${{ steps.pickfile.outputs.file_to_scan }}**
+          - Estado: **${{ steps.parse.outputs.status }}**
+          - Probabilidad: **${{ steps.parse.outputs.prob }}**
+
+          El merge fue bloqueado automáticamente.
 
     - name: Block merge if vulnerable
       if: steps.parse.outputs.status == 'VULNERABLE'
