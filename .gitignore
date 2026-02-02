@@ -14,3 +14,5 @@ __pycache__
 *.pyc
 .vscode
 package-lock.json
+app/vulnerable_code.py
+app/vulnerable.c
