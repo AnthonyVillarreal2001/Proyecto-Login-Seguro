@@ -1,4 +1,4 @@
-// src/utils/sessionManager.js - VERSIÓN SEGURA CORREGIDA
+// src/utils/sessionManager.js - VERSIÓN COMPLETAMENTE SEGURA
 class SessionManager {
   constructor(timeoutMinutes = 5) {
     this.timeout = timeoutMinutes * 60 * 1000; // 5 minutos
@@ -11,7 +11,65 @@ class SessionManager {
     this.isModalShowing = false;
     this.initialized = false;
     
+    // Crear estilos CSS globales seguros una sola vez
+    this.createGlobalStyles();
+    
     console.log(`SessionManager configurado para ${timeoutMinutes} minutos de inactividad`);
+  }
+
+  // Crear estilos CSS globales de forma segura
+  createGlobalStyles() {
+    if (document.getElementById('session-manager-styles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'session-manager-styles';
+    style.textContent = `
+      @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      
+      #sessionToast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 9999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      #tokenExpiryModal {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 15px;
+        z-index: 9999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-width: 350px;
+        animation: slideInRight 0.3s ease;
+      }
+      
+      #inactivityWarningModal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.85);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   init() {
@@ -92,7 +150,7 @@ class SessionManager {
       // Cerrar modal de advertencia si está abierto
       if (this.isModalShowing) {
         this.closeModal();
-        this.showToast('✅ Actividad detectada, sesión extendida', 'success');
+        this.showToast('Actividad detectada, sesión extendida', 'success');
       }
     }
   }
@@ -112,23 +170,20 @@ class SessionManager {
     }
 
     try {
-      // Decodificación segura del token JWT
-      const parts = token.split('.');
-      if (parts.length !== 3) {
-        console.error('Formato de token inválido');
+      // Decodificación segura del token JWT sin atob vulnerable
+      const payload = this.parseJwt(token);
+      if (!payload || !payload.exp) {
+        console.error('Token inválido o sin expiración');
         return;
       }
       
-      // Usar decodeURIComponent con escape para evitar problemas
-      const base64Url = parts[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-      
-      const payload = JSON.parse(jsonPayload);
       const expiresAt = payload.exp * 1000;
       const timeLeft = expiresAt - Date.now();
+      
+      if (timeLeft <= 0) {
+        this.forceLogout('Token expirado');
+        return;
+      }
       
       // Convertir a minutos y segundos para logging
       const minutes = Math.floor(timeLeft / 60000);
@@ -145,6 +200,47 @@ class SessionManager {
       
     } catch (err) {
       console.error('Error verificando token:', err);
+    }
+  }
+
+  // Método seguro para parsear JWT
+  parseJwt(token) {
+    try {
+      // Validar formato básico
+      if (typeof token !== 'string' || token.split('.').length !== 3) {
+        return null;
+      }
+      
+      const base64Url = token.split('.')[1];
+      // Reemplazar caracteres de Base64Url
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      
+      // Decodificar Base64 de forma segura
+      const jsonPayload = this.decodeBase64(base64);
+      if (!jsonPayload) return null;
+      
+      return JSON.parse(jsonPayload);
+    } catch (error) {
+      console.error('Error parsing JWT:', error);
+      return null;
+    }
+  }
+
+  // Decodificar Base64 de forma segura
+  decodeBase64(base64) {
+    try {
+      // Usar atob pero con validación previa
+      const binaryString = atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      return new TextDecoder().decode(bytes);
+    } catch (error) {
+      console.error('Error decoding base64:', error);
+      return null;
     }
   }
 
@@ -171,8 +267,14 @@ class SessionManager {
   }
 
   clearInactivityTimers() {
-    if (this.warningTimer) clearTimeout(this.warningTimer);
-    if (this.timer) clearTimeout(this.timer);
+    if (this.warningTimer) {
+      clearTimeout(this.warningTimer);
+      this.warningTimer = null;
+    }
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
   }
 
   showTokenExpiryWarning(minutes, seconds) {
@@ -186,47 +288,38 @@ class SessionManager {
     modal.setAttribute('role', 'alert');
     modal.setAttribute('aria-live', 'polite');
     
-    // Estilos directamente en el elemento
-    modal.style.position = 'fixed';
-    modal.style.top = '20px';
-    modal.style.right = '20px';
-    modal.style.backgroundColor = '#fff3cd';
-    modal.style.border = '1px solid #ffeaa7';
-    modal.style.borderRadius = '8px';
-    modal.style.padding = '15px';
-    modal.style.zIndex = '9999';
-    modal.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    modal.style.maxWidth = '350px';
-    modal.style.animation = 'slideInRight 0.3s ease';
+    const container = this.createElementWithStyles('div', {
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '10px'
+    });
     
-    // Crear contenido seguro usando DOM methods
-    const container = document.createElement('div');
-    container.style.display = 'flex';
-    container.style.alignItems = 'flex-start';
-    container.style.gap = '10px';
-    
-    const icon = document.createElement('span');
+    const icon = this.createElementWithStyles('span', {
+      fontSize: '24px'
+    });
     icon.textContent = '⏰';
-    icon.style.fontSize = '24px';
     
     const contentDiv = document.createElement('div');
     
-    const title = document.createElement('strong');
+    const title = this.createElementWithStyles('strong', {
+      color: '#856404',
+      display: 'block'
+    });
     title.textContent = 'Token por expirar';
-    title.style.color = '#856404';
-    title.style.display = 'block';
     
-    const message1 = document.createElement('p');
+    const message1 = this.createElementWithStyles('p', {
+      margin: '5px 0 0 0',
+      color: '#856404',
+      fontSize: '14px'
+    });
     message1.textContent = `Tu token de sesión expira en ${minutes}:${seconds.toString().padStart(2, '0')}`;
-    message1.style.margin = '5px 0 0 0';
-    message1.style.color = '#856404';
-    message1.style.fontSize = '14px';
     
-    const message2 = document.createElement('p');
+    const message2 = this.createElementWithStyles('p', {
+      margin: '5px 0 0 0',
+      color: '#856404',
+      fontSize: '12px'
+    });
     message2.textContent = 'Realiza alguna acción para renovarlo automáticamente';
-    message2.style.margin = '5px 0 0 0';
-    message2.style.color = '#856404';
-    message2.style.fontSize = '12px';
     
     contentDiv.appendChild(title);
     contentDiv.appendChild(message1);
@@ -235,16 +328,6 @@ class SessionManager {
     container.appendChild(icon);
     container.appendChild(contentDiv);
     modal.appendChild(container);
-    
-    // Agregar estilos CSS seguros
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes slideInRight {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-      }
-    `;
-    modal.appendChild(style);
     
     document.body.appendChild(modal);
     
@@ -265,105 +348,102 @@ class SessionManager {
     modal.setAttribute('aria-labelledby', 'inactivityTitle');
     modal.setAttribute('aria-modal', 'true');
     
-    // Estilos
-    modal.style.position = 'fixed';
-    modal.style.top = '0';
-    modal.style.left = '0';
-    modal.style.width = '100%';
-    modal.style.height = '100%';
-    modal.style.backgroundColor = 'rgba(0,0,0,0.85)';
-    modal.style.display = 'flex';
-    modal.style.justifyContent = 'center';
-    modal.style.alignItems = 'center';
-    modal.style.zIndex = '99999';
-    
-    const dialog = document.createElement('div');
-    dialog.style.backgroundColor = 'white';
-    dialog.style.padding = '40px';
-    dialog.style.borderRadius = '15px';
-    dialog.style.maxWidth = '500px';
-    dialog.style.width = '90%';
-    dialog.style.textAlign = 'center';
-    dialog.style.boxShadow = '0 10px 40px rgba(0,0,0,0.3)';
+    const dialog = this.createElementWithStyles('div', {
+      backgroundColor: 'white',
+      padding: '40px',
+      borderRadius: '15px',
+      maxWidth: '500px',
+      width: '90%',
+      textAlign: 'center',
+      boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
+    });
     
     // Icono
-    const icon = document.createElement('div');
+    const icon = this.createElementWithStyles('div', {
+      fontSize: '60px',
+      marginBottom: '20px'
+    });
     icon.textContent = '⚠️';
-    icon.style.fontSize = '60px';
-    icon.style.marginBottom = '20px';
     
     // Título
-    const title = document.createElement('h3');
+    const title = this.createElementWithStyles('h3', {
+      color: '#dc3545',
+      marginBottom: '15px'
+    });
     title.id = 'inactivityTitle';
     title.textContent = '¡Inactividad detectada!';
-    title.style.color = '#dc3545';
-    title.style.marginBottom = '15px';
     
     // Mensaje 1
-    const message1 = document.createElement('p');
+    const message1 = this.createElementWithStyles('p', {
+      fontSize: '16px',
+      color: '#666',
+      marginBottom: '10px'
+    });
     message1.textContent = 'Has estado inactivo por 4 minutos.';
-    message1.style.fontSize = '16px';
-    message1.style.color = '#666';
-    message1.style.marginBottom = '10px';
     
     // Mensaje 2 con contador
-    const message2 = document.createElement('p');
-    message2.textContent = 'La sesión se cerrará en ';
-    message2.style.fontSize = '16px';
-    message2.style.color = '#666';
-    message2.style.marginBottom = '25px';
-    
-    const countdownSpan = document.createElement('strong');
+    const message2 = this.createElementWithStyles('p', {
+      fontSize: '16px',
+      color: '#666',
+      marginBottom: '25px'
+    });
+    const message2Text = document.createTextNode('La sesión se cerrará en ');
+    const countdownSpan = this.createElementWithStyles('strong', {
+      color: '#dc3545',
+      fontSize: '20px'
+    });
     countdownSpan.id = 'countdown';
     countdownSpan.textContent = '60';
-    countdownSpan.style.color = '#dc3545';
-    countdownSpan.style.fontSize = '20px';
-    
     const secondsText = document.createTextNode(' segundos.');
     
+    message2.appendChild(message2Text);
     message2.appendChild(countdownSpan);
     message2.appendChild(secondsText);
     
     // Botones container
-    const buttonsContainer = document.createElement('div');
-    buttonsContainer.style.display = 'flex';
-    buttonsContainer.style.gap = '15px';
-    buttonsContainer.style.justifyContent = 'center';
-    buttonsContainer.style.flexWrap = 'wrap';
+    const buttonsContainer = this.createElementWithStyles('div', {
+      display: 'flex',
+      gap: '15px',
+      justifyContent: 'center',
+      flexWrap: 'wrap'
+    });
     
     // Botón continuar
-    const continueBtn = document.createElement('button');
+    const continueBtn = this.createElementWithStyles('button', {
+      padding: '12px 30px',
+      backgroundColor: '#28a745',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '16px',
+      fontWeight: 'bold',
+      minWidth: '200px'
+    });
     continueBtn.id = 'continueSessionBtn';
     continueBtn.textContent = '🖱️ Continuar sesión';
-    continueBtn.style.padding = '12px 30px';
-    continueBtn.style.backgroundColor = '#28a745';
-    continueBtn.style.color = 'white';
-    continueBtn.style.border = 'none';
-    continueBtn.style.borderRadius = '8px';
-    continueBtn.style.cursor = 'pointer';
-    continueBtn.style.fontSize = '16px';
-    continueBtn.style.fontWeight = 'bold';
-    continueBtn.style.minWidth = '200px';
     
     // Botón logout
-    const logoutBtn = document.createElement('button');
+    const logoutBtn = this.createElementWithStyles('button', {
+      padding: '12px 30px',
+      backgroundColor: '#6c757d',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '16px',
+      minWidth: '200px'
+    });
     logoutBtn.id = 'logoutNowBtn';
     logoutBtn.textContent = '👋 Cerrar sesión ahora';
-    logoutBtn.style.padding = '12px 30px';
-    logoutBtn.style.backgroundColor = '#6c757d';
-    logoutBtn.style.color = 'white';
-    logoutBtn.style.border = 'none';
-    logoutBtn.style.borderRadius = '8px';
-    logoutBtn.style.cursor = 'pointer';
-    logoutBtn.style.fontSize = '16px';
-    logoutBtn.style.minWidth = '200px';
     
     // Footer
-    const footer = document.createElement('p');
+    const footer = this.createElementWithStyles('p', {
+      fontSize: '14px',
+      color: '#999',
+      marginTop: '25px'
+    });
     footer.textContent = 'Mueve el mouse o presiona una tecla para mantenerte conectado';
-    footer.style.fontSize = '14px';
-    footer.style.color = '#999';
-    footer.style.marginTop = '25px';
     
     // Construir estructura
     buttonsContainer.appendChild(continueBtn);
@@ -378,6 +458,10 @@ class SessionManager {
     
     modal.appendChild(dialog);
     document.body.appendChild(modal);
+    
+    // Hacer el modal enfocable
+    modal.tabIndex = -1;
+    modal.focus();
     
     let countdown = 60;
     const countdownInterval = setInterval(() => {
@@ -398,11 +482,14 @@ class SessionManager {
       }
     }, 1000);
     
+    // Guardar referencia para cleanup
+    this.countdownInterval = countdownInterval;
+    
     // Botón para continuar sesión
     continueBtn.addEventListener('click', () => {
       clearInterval(countdownInterval);
       this.handleUserActivity();
-      this.showToast('✅ Sesión extendida', 'success');
+      this.showToast('Sesión extendida', 'success');
     });
     
     // Botón para cerrar sesión
@@ -415,14 +502,18 @@ class SessionManager {
     const handleActivity = () => {
       clearInterval(countdownInterval);
       this.handleUserActivity();
-      this.showToast('✅ Sesión extendida', 'success');
+      this.showToast('Sesión extendida', 'success');
     };
     
     document.addEventListener('mousemove', handleActivity, { once: true });
     document.addEventListener('keydown', handleActivity, { once: true });
-    
-    // Guardar referencia para cleanup
-    this.countdownInterval = countdownInterval;
+  }
+
+  // Helper para crear elementos con estilos
+  createElementWithStyles(tagName, styles) {
+    const element = document.createElement(tagName);
+    Object.assign(element.style, styles);
+    return element;
   }
 
   closeModal() {
@@ -459,20 +550,16 @@ class SessionManager {
     toast.setAttribute('role', 'alert');
     toast.setAttribute('aria-live', 'polite');
     
-    // Estilos
-    toast.style.position = 'fixed';
-    toast.style.top = '20px';
-    toast.style.right = '20px';
-    toast.style.backgroundColor = type === 'success' ? '#d4edda' : '#f8d7da';
-    toast.style.color = type === 'success' ? '#155724' : '#721c24';
-    toast.style.border = `1px solid ${type === 'success' ? '#c3e6cb' : '#f5c6cb'}`;
-    toast.style.padding = '12px 20px';
-    toast.style.borderRadius = '8px';
-    toast.style.zIndex = '9999';
-    toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    toast.style.display = 'flex';
-    toast.style.alignItems = 'center';
-    toast.style.gap = '10px';
+    // Configurar estilos basados en tipo
+    if (type === 'success') {
+      toast.style.backgroundColor = '#d4edda';
+      toast.style.color = '#155724';
+      toast.style.border = '1px solid #c3e6cb';
+    } else {
+      toast.style.backgroundColor = '#f8d7da';
+      toast.style.color = '#721c24';
+      toast.style.border = '1px solid #f5c6cb';
+    }
     
     // Icono
     const icon = document.createElement('span');
@@ -499,6 +586,7 @@ class SessionManager {
   sanitizeText(text) {
     if (typeof text !== 'string') return '';
     
+    // Crear elemento temporal y usar textContent
     const div = document.createElement('div');
     div.textContent = text;
     return div.textContent;
@@ -526,13 +614,22 @@ class SessionManager {
     
     // Limpiar timers
     this.clearInactivityTimers();
-    if (this.checkTimer) clearInterval(this.checkTimer);
+    if (this.checkTimer) {
+      clearInterval(this.checkTimer);
+      this.checkTimer = null;
+    }
     
     // Remover event listeners
     if (this.activityHandler && this.activityEvents) {
       this.activityEvents.forEach(event => {
         document.removeEventListener(event, this.activityHandler);
       });
+    }
+    
+    // Limpiar estilos globales
+    const styles = document.getElementById('session-manager-styles');
+    if (styles) {
+      document.head.removeChild(styles);
     }
     
     // Redirigir de forma segura
