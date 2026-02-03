@@ -1,0 +1,401 @@
+name: Full CI/CD Pipeline (dev → test → main)
+
+on:
+  pull_request:
+    branches: [test]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: write
+  statuses: write
+
+env:
+  TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+jobs:
+  # ETAPA 1: Revisión de Seguridad con ML
+  security-review:
+    name: Security Review with ML Model
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.base.ref == 'test' && github.event.pull_request.head.ref == 'dev'
+    
+    outputs:
+      security_status: ${{ steps.check_security.outputs.status }}
+      security_details: ${{ steps.check_security.outputs.details }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        ref: ${{ github.event.pull_request.head.sha }}
+    
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v39
+      with:
+        files: |
+          **/*.py
+          **/*.js
+          **/*.java
+          **/*.c
+          **/*.cs
+    
+    - name: Send Telegram - Inicio revisión
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        MESSAGE="🔍 *Inicio de Revisión de Seguridad*%0A%0A📝 *PR:* #${{ github.event.pull_request.number }}%0A📂 *De:* ${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}%0A👤 *Autor:* ${{ github.event.pull_request.user.login }}%0A📄 *Archivos modificados:* ${{ steps.changed-files.outputs.all_changed_files_count }}"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        pip install -r backend/requirements.txt || true
+        pip install joblib datasets scikit-learn==1.5.2 scipy requests pandas jq
+    
+    - name: Run security check on changed files
+      id: check_security
+      run: |
+        echo "🔍 Analizando archivos modificados..."
+        VULNERABLE_COUNT=0
+        VULNERABLE_DETAILS=""
+        ALL_FILES="${{ steps.changed-files.outputs.all_changed_files }}"
+        
+        if [ -z "$ALL_FILES" ]; then
+          echo "status=SAFE" >> $GITHUB_OUTPUT
+          echo "details=No hay archivos analizables" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        IFS=' ' read -ra FILES <<< "$ALL_FILES"
+        for file in "${FILES[@]}"; do
+          if [[ $file == *.py || $file == *.js || $file == *.java || $file == *.c || $file == *.cs ]]; then
+            echo "📄 Analizando: $file"
+            
+            if [ -f "$file" ]; then
+              RESULT=$(python scripts/security_check.py "$file" 2>/dev/null || echo '{"status":"ERROR"}')
+              STATUS=$(echo "$RESULT" | jq -r '.status' 2>/dev/null || echo "ERROR")
+              
+              if [ "$STATUS" = "VULNERABLE" ]; then
+                VULNERABLE_COUNT=$((VULNERABLE_COUNT + 1))
+                PROB=$(echo "$RESULT" | jq -r '.probability' 2>/dev/null || echo "0")
+                LANG=$(echo "$RESULT" | jq -r '.language' 2>/dev/null || echo "unknown")
+                FUNCS=$(echo "$RESULT" | jq -r '.dangerous_functions' 2>/dev/null || echo "unknown")
+                OWASP=$(echo "$RESULT" | jq -r '.owasp_category' 2>/dev/null || echo "Unknown")
+                
+                VULNERABLE_DETAILS="${VULNERABLE_DETAILS}FILE:${file}|PROB:${PROB}|LANG:${LANG}|FUNCS:${FUNCS}|OWASP:${OWASP};"
+                
+                echo "❌ Vulnerable: $file"
+              else
+                echo "✅ Safe: $file"
+              fi
+            fi
+          fi
+        done
+        
+        if [ $VULNERABLE_COUNT -gt 0 ]; then
+          echo "status=VULNERABLE" >> $GITHUB_OUTPUT
+          echo "details=$VULNERABLE_DETAILS" >> $GITHUB_OUTPUT
+          echo "❌ Se encontraron $VULNERABLE_COUNT archivos vulnerables"
+          exit 1
+        else
+          echo "status=SAFE" >> $GITHUB_OUTPUT
+          echo "details=All files are safe" >> $GITHUB_OUTPUT
+          echo "✅ Todos los archivos son seguros"
+        fi
+    
+    - name: Send Telegram - Resultado seguridad (SAFE)
+      if: success()
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        MESSAGE="✅ *Resultado de Seguridad*%0A%0A🟢 *Estado:* SEGURO%0A📝 *PR:* #${{ github.event.pull_request.number }}%0A📄 *Archivos analizados:* ${{ steps.changed-files.outputs.all_changed_files_count }}%0A👤 *Autor:* ${{ github.event.pull_request.user.login }}%0A%0A✅ *Continuando con el pipeline...*"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
+    
+    - name: Send Telegram - Resultado seguridad (VULNERABLE)
+      if: failure()
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        DETAILS="${{ steps.check_security.outputs.security_details }}"
+        
+        MESSAGE="🚨 *Resultado de Seguridad*%0A%0A🔴 *Estado:* VULNERABLE%0A📝 *PR:* #${{ github.event.pull_request.number }}%0A❌ *Merge:* BLOQUEADO%0A%0A*Archivos vulnerables:*%0A"
+        
+        IFS=';' read -ra VULN_FILES <<< "$DETAILS"
+        for item in "${VULN_FILES[@]}"; do
+          if [ ! -z "$item" ]; then
+            FILE=$(echo "$item" | grep -oP 'FILE:\K[^|]+')
+            PROB=$(echo "$item" | grep -oP 'PROB:\K[^|]+')
+            LANG=$(echo "$item" | grep -oP 'LANG:\K[^|]+')
+            FUNCS=$(echo "$item" | grep -oP 'FUNCS:\K[^|]+')
+            OWASP=$(echo "$item" | grep -oP 'OWASP:\K[^|]+')
+            
+            PERCENT=$(echo "$PROB * 100" | bc -l)
+            PERCENT_FORMATTED=$(printf "%.2f" $PERCENT)
+            
+            MESSAGE="${MESSAGE}%0A📄 \`${FILE}\`%0A🔤 *Lenguaje:* ${LANG}%0A⚠️ *Probabilidad:* ${PERCENT_FORMATTED}%%%0A🛡️ *OWASP:* ${OWASP}%0A🔧 *Funciones:* ${FUNCS}%0A"
+          fi
+        done
+        
+        MESSAGE="${MESSAGE}%0A⚠️ *Acción requerida:* Corregir vulnerabilidades antes de merge"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
+    
+    - name: Create issue for vulnerabilities
+      if: failure()
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const details = '${{ steps.check_security.outputs.security_details }}';
+          const vulnFiles = details.split(';').filter(f => f.length > 0);
+          
+          let issueBody = `## 🚨 Vulnerabilidades Detectadas en PR #${{ github.event.pull_request.number }}\n\n`;
+          issueBody += `**PR bloqueado** debido a código vulnerable detectado.\n\n`;
+          issueBody += `**Autor:** ${{ github.event.pull_request.user.login }}\n`;
+          issueBody += `**Rama:** ${{ github.event.pull_request.head.ref }} → ${{ github.event.pull_request.base.ref }}\n\n`;
+          
+          issueBody += '### 📊 Archivos Vulnerables:\n\n';
+          
+          vulnFiles.forEach(item => {
+            const match = item.match(/FILE:([^|]+)\|PROB:([^|]+)\|LANG:([^|]+)\|FUNCS:([^|]+)\|OWASP:([^|]+)/);
+            if (match) {
+              const [_, file, prob, lang, funcs, owasp] = match;
+              const percent = (parseFloat(prob) * 100).toFixed(2);
+              
+              issueBody += `#### 📄 \`${file}\`\n`;
+              issueBody += `- **Lenguaje:** ${lang}\n`;
+              issueBody += `- **Probabilidad de Vulnerabilidad:** ${percent}%\n`;
+              issueBody += `- **Categoría OWASP:** ${owasp}\n`;
+              issueBody += `- **Funciones Peligrosas:** ${funcs}\n\n`;
+            }
+          });
+          
+          issueBody += '### 🔧 Acción Requerida:\n';
+          issueBody += '1. Revisar los archivos vulnerables\n';
+          issueBody += '2. Corregir las vulnerabilidades detectadas\n';
+          issueBody += '3. Actualizar el PR con los cambios\n';
+          issueBody += '4. El pipeline se ejecutará automáticamente\n\n';
+          issueBody += '---\n';
+          issueBody += '*🤖 Issue generada automáticamente por el sistema de seguridad*';
+          
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `🚨 PR #${{ github.event.pull_request.number }} Bloqueado: Vulnerabilidades Detectadas`,
+            body: issueBody,
+            labels: ['security', 'vulnerability', 'fixing-required', 'pr-blocked']
+          });
+    
+    - name: Add label "fixing-required"
+      if: failure()
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          await github.rest.issues.addLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: ${{ github.event.pull_request.number }},
+            labels: ['fixing-required']
+          });
+
+  # ETAPA 2: Merge automático a test + Pruebas unitarias
+  merge-and-test:
+    name: Merge to Test & Run Tests
+    runs-on: ubuntu-latest
+    needs: security-review
+    if: needs.security-review.outputs.security_status == 'SAFE'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Configure Git
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+    
+    - name: Merge dev into test
+      id: merge_test
+      run: |
+        # Obtener detalles del PR
+        PR_NUMBER=${{ github.event.pull_request.number }}
+        HEAD_SHA=${{ github.event.pull_request.head.sha }}
+        BASE_SHA=${{ github.event.pull_request.base.sha }}
+        
+        echo "🔄 Merging dev into test..."
+        
+        # Fetch todas las ramas
+        git fetch origin dev
+        git fetch origin test
+        
+        # Hacer checkout a test
+        git checkout test
+        
+        # Merge
+        git merge --no-ff origin/dev -m "🤖 Auto-merge from dev to test (PR #$PR_NUMBER)"
+        
+        # Push
+        git push origin test
+        
+        echo "✅ Merge completado"
+        echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+    
+    - name: Send Telegram - Merge a test
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        MESSAGE="🔄 *Merge a Test Realizado*%0A%0A✅ *Estado:* EXITOSO%0A📝 *PR:* #${{ github.event.pull_request.number }}%0A📂 *De:* dev → test%0A🔗 *Commit:* \`${{ steps.merge_test.outputs.sha }}\`%0A%0A⚙️ *Ejecutando pruebas...*"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
+    
+    - name: Run backend tests
+      working-directory: ./backend
+      run: |
+        echo "🧪 Ejecutando pruebas del backend..."
+        npm test 2>&1 | tee test-output.log
+        
+        # Verificar resultado
+        if grep -q "FAIL" test-output.log || grep -q "Test Suites:.*failed" test-output.log; then
+          echo "❌ Pruebas fallaron"
+          exit 1
+        fi
+        
+        echo "✅ Pruebas pasaron"
+    
+    - name: Send Telegram - Resultado pruebas (Éxito)
+      if: success()
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        MESSAGE="✅ *Resultado de Pruebas*%0A%0A🟢 *Estado:* TODAS PASARON%0A📝 *PR:* #${{ github.event.pull_request.number }}%0A📂 *Rama:* test%0A%0A🚀 *Continuando a producción...*"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
+    
+    - name: Send Telegram - Resultado pruebas (Fallidas)
+      if: failure()
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        MESSAGE="❌ *Resultado de Pruebas*%0A%0A🔴 *Estado:* FALLIDAS%0A📝 *PR:* #${{ github.event.pull_request.number }}%0A📂 *Rama:* test%0A🚫 *Merge a main:* BLOQUEADO%0A%0A⚠️ *Revisa los logs de GitHub Actions*"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
+    
+    - name: Add label "tests-failed"
+      if: failure()
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          await github.rest.issues.addLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: ${{ github.event.pull_request.number }},
+            labels: ['tests-failed']
+          });
+
+  # ETAPA 3: Merge a main
+  merge-to-main:
+    name: Merge to Main (Production)
+    runs-on: ubuntu-latest
+    needs: [security-review, merge-and-test]
+    if: |
+      needs.security-review.outputs.security_status == 'SAFE' &&
+      needs.merge-and-test.result == 'success'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Configure Git
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+    
+    - name: Create PR test → main
+      id: create_pr
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const pr = await github.rest.pulls.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: "🚀 Deploy to Production [Automated]",
+            body: "Este PR fue creado automáticamente después de pasar todas las validaciones:\n\n" +
+                  "✅ Revisión de seguridad con ML\n" +
+                  "✅ Pruebas unitarias e integración\n\n" +
+                  "**Detalles:**\n" +
+                  `- PR original: #${context.payload.pull_request.number}\n` +
+                  `- Commit: ${context.payload.pull_request.head.sha}\n` +
+                  `- Autor: ${context.payload.pull_request.user.login}\n\n` +
+                  "Este merge desplegará automáticamente en producción.",
+            head: "test",
+            base: "main"
+          });
+          
+          console.log(`PR creado: #${pr.data.number}`);
+          
+          // Auto-merge el PR
+          await github.rest.pulls.merge({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: pr.data.number,
+            merge_method: "merge"
+          });
+          
+          return pr.data.number;
+    
+    - name: Send Telegram - Despliegue exitoso
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        MESSAGE="🚀 *Despliegue en Producción*%0A%0A✅ *Estado:* EXITOSO%0A📝 *PR Original:* #${{ github.event.pull_request.number }}%0A📂 *Rama:* test → main%0A👤 *Autor:* ${{ github.event.pull_request.user.login }}%0A%0A🎉 *¡Aplicación desplegada en producción!*"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"

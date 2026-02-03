@@ -3,7 +3,7 @@ import sys
 import json
 import requests
 
-def send_telegram_message(text: str):
+def send_telegram_message(text: str, parse_mode: str = "Markdown"):
     """Send a message to a Telegram bot chat."""
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
@@ -17,12 +17,40 @@ def send_telegram_message(text: str):
     payload = {
         "chat_id": chat_id,
         "text": text,
-        "parse_mode": "Markdown"
+        "parse_mode": parse_mode
     }
 
-    response = requests.post(url, json=payload)
-    return response.status_code == 200
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        return response.status_code == 200
+    except Exception as e:
+        print(f"ERROR enviando a Telegram: {e}")
+        return False
 
+def format_security_message(file_name, data):
+    """Formatear mensaje de seguridad."""
+    status = data.get("status", "ERROR")
+    prob = data.get("probability", 0.0)
+    lang = data.get("language", "unknown")
+    
+    if status == "VULNERABLE":
+        emoji = "🚨"
+        status_text = "*VULNERABLE*"
+    elif status == "SAFE":
+        emoji = "✅"
+        status_text = "*SAFE*"
+    else:
+        emoji = "⚠️"
+        status_text = "*ERROR*"
+    
+    return (
+        f"{emoji} *Security Scan Result*\n\n"
+        f"📄 *File:* `{file_name}`\n"
+        f"🔤 *Language:* `{lang}`\n"
+        f"{emoji} *Status:* {status_text}\n"
+        f"📊 *Probability:* `{prob:.2%}`\n"
+        f"🛡️ *OWASP:* {data.get('owasp_category', 'Unknown')}\n"
+    )
 
 def main():
     if len(sys.argv) < 3:
@@ -36,50 +64,22 @@ def main():
         data = json.loads(result_json)
     except Exception as e:
         print("ERROR al parsear JSON:", e)
-        print("JSON recibido:", result_json)
-        # Enviar mensaje de error
         msg = (
-            f"🚨 *Reporte de Seguridad*\n\n"
-            f"📄 *Archivo:* `{file_name}`\n"
-            f"❌ *Estado:* ERROR al analizar\n"
-            f"⚠️ *Detalles:* {str(e)}\n"
+            f"🚨 *Security Report*\n\n"
+            f"📄 *File:* `{file_name}`\n"
+            f"❌ *Status:* ERROR parsing\n"
+            f"⚠️ *Details:* {str(e)}\n"
         )
         send_telegram_message(msg)
         sys.exit(1)
 
-    lang = data.get("language_detected", "unknown")
-    status = data.get("status", "ERROR")
-    prob = data.get("probability_vulnerable", 0.0)
-    prediction = data.get("prediction", 0)
-    danger_count = data.get("dangerous_functions_found", 0)
-
-    # Emoji según el estado
-    if status == "VULNERABLE":
-        emoji_status = "🚨"
-        emoji_icon = "❌"
-    elif status == "SAFE":
-        emoji_status = "✅"
-        emoji_icon = "✔️"
-    else:
-        emoji_status = "⚠️"
-        emoji_icon = "❓"
-
-    msg = (
-        f"{emoji_status} *Reporte de Seguridad*\n\n"
-        f"📄 *Archivo:* `{file_name}`\n"
-        f"🔤 *Lenguaje:* `{lang}`\n"
-        f"{emoji_icon} *Estado:* *{status}*\n"
-        f"📊 *Probabilidad:* `{prob:.2%}`\n"
-        f"⚠️ *Funciones peligrosas:* `{danger_count}`\n"
-    )
-
+    msg = format_security_message(file_name, data)
     ok = send_telegram_message(msg)
 
     if ok:
-        print("✅ Mensaje enviado a Telegram correctamente")
+        print("✅ Mensaje enviado a Telegram")
     else:
-        print("❌ ERROR: No se pudo enviar mensaje a Telegram")
-
+        print("❌ ERROR: No se pudo enviar mensaje")
 
 if __name__ == "__main__":
     main()
