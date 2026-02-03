@@ -42,28 +42,113 @@ jobs:
         echo "🔄 Iniciando escaneo de seguridad completo..."
         echo "📂 Rama actual: ${{ github.ref_name }}"
         
-        # Contar archivos
-        JS_COUNT=$(find . -name "*.js" -not -path "*/node_modules/*" -not -path "*/.next/*" -not -path "*/.venv/*" 2>/dev/null | wc -l || echo "0")
-        PY_COUNT=$(find . -name "*.py" -not -path "*/node_modules/*" -not -path "*/.venv/*" -not -path "*/scripts/*" 2>/dev/null | wc -l || echo "0")
-        JAVA_COUNT=$(find . -name "*.java" -not -path "*/node_modules/*" -not -path "*/.venv/*" 2>/dev/null | wc -l || echo "0")
+        # Encontrar todos los archivos a analizar
+        JS_FILES=$(find . -name "*.js" -not -path "*/node_modules/*" -not -path "*/.next/*" -not -path "*/.venv/*" 2>/dev/null || true)
+        PY_FILES=$(find . -name "*.py" -not -path "*/node_modules/*" -not -path "*/.venv/*" -not -path "*/scripts/*" 2>/dev/null || true)
+        JAVA_FILES=$(find . -name "*.java" -not -path "*/node_modules/*" -not -path "*/.venv/*" 2>/dev/null || true)
         
-        TOTAL=$((JS_COUNT + PY_COUNT + JAVA_COUNT))
-        echo "📊 Archivos encontrados:"
-        echo "   - JavaScript: $JS_COUNT"
-        echo "   - Python: $PY_COUNT"
-        echo "   - Java: $JAVA_COUNT"
-        echo "   - Total: $TOTAL"
+        # Combinar archivos
+        ALL_FILES=""
+        SCANNED_COUNT=0
+        VULNERABLE_FILES=""
+        FAILED=0
         
-        # Simular escaneo (ajusta esto con tu script real)
-        echo "🔬 Simulando análisis de seguridad..."
-        echo "✅ Todos los archivos son seguros"
+        echo "📋 Archivos encontrados:"
         
-        echo "scanned_count=$TOTAL" >> $GITHUB_OUTPUT
-        echo "is_safe=true" >> $GITHUB_OUTPUT
+        # JavaScript files
+        for file in $JS_FILES; do
+          if [ -f "$file" ]; then
+            SCANNED_COUNT=$((SCANNED_COUNT + 1))
+            echo "   - $file"
+            ALL_FILES="${ALL_FILES}$file"$'\n'
+          fi
+        done
         
-        # Si hubiera vulnerabilidades:
-        # echo "is_safe=false" >> $GITHUB_OUTPUT
-        # exit 1
+        # Python files
+        for file in $PY_FILES; do
+          if [ -f "$file" ]; then
+            SCANNED_COUNT=$((SCANNED_COUNT + 1))
+            echo "   - $file"
+            ALL_FILES="${ALL_FILES}$file"$'\n'
+          fi
+        done
+        
+        # Java files
+        for file in $JAVA_FILES; do
+          if [ -f "$file" ]; then
+            SCANNED_COUNT=$((SCANNED_COUNT + 1))
+            echo "   - $file"
+            ALL_FILES="${ALL_FILES}$file"$'\n'
+          fi
+        done
+        
+        echo ""
+        echo "🔍 Total archivos a analizar: $SCANNED_COUNT"
+        echo ""
+        
+        # Analizar cada archivo con tu script de seguridad
+        if [ $SCANNED_COUNT -gt 0 ]; then
+          echo "🔬 Ejecutando análisis de seguridad con ML..."
+          
+          VULNERABLE_COUNT=0
+          
+          while IFS= read -r file; do
+            if [ -n "$file" ] && [ -f "$file" ]; then
+              echo "   Analizando: $(basename "$file")"
+              
+              # Ejecutar tu script de seguridad
+              if python scripts/security_check.py "$file" > /tmp/scan_result.json 2>/dev/null; then
+                RESULT=$(cat /tmp/scan_result.json)
+                STATUS=$(echo "$RESULT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data.get('status', 'ERROR'))" 2>/dev/null || echo "ERROR")
+                
+                if [ "$STATUS" = "VULNERABLE" ]; then
+                  VULNERABLE_COUNT=$((VULNERABLE_COUNT + 1))
+                  FAILED=1
+                  
+                  PROB=$(echo "$RESULT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data.get('probability', 0))" 2>/dev/null || echo "0")
+                  LANG=$(echo "$RESULT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data.get('language', 'Unknown'))" 2>/dev/null || echo "Unknown")
+                  FUNCS=$(echo "$RESULT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data.get('dangerous_functions', '[]'))" 2>/dev/null || echo "[]")
+                  OWASP=$(echo "$RESULT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data.get('owasp_category', 'Unknown'))" 2>/dev/null || echo "Unknown")
+                  
+                  echo "      ❌ VULNERABLE - Prob: $PROB, Lang: $LANG"
+                  VULNERABLE_FILES="${VULNERABLE_FILES}$file|$PROB|$LANG|$FUNCS|$OWASP;"
+                elif [ "$STATUS" = "SAFE" ]; then
+                  echo "      ✅ SAFE"
+                else
+                  echo "      ⚠️  ERROR en análisis"
+                fi
+              else
+                echo "      ⚠️  No se pudo ejecutar security_check.py"
+              fi
+            fi
+          done <<< "$ALL_FILES"
+          
+          echo ""
+          echo "📊 RESULTADO DEL ESCANEO:"
+          echo "   Archivos analizados: $SCANNED_COUNT"
+          echo "   Vulnerabilidades: $VULNERABLE_COUNT"
+          
+          if [ $FAILED -eq 0 ]; then
+            echo "✅ TODOS LOS ARCHIVOS SON SEGUROS"
+            echo "is_safe=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ SE ENCONTRARON VULNERABILIDADES"
+            echo "is_safe=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "scanned_count=$SCANNED_COUNT" >> $GITHUB_OUTPUT
+          echo "vulnerable_files=$VULNERABLE_FILES" >> $GITHUB_OUTPUT
+          
+          if [ $FAILED -eq 1 ]; then
+            echo "🚫 BLOQUEANDO PIPELINE - VULNERABILIDADES DETECTADAS"
+            exit 1
+          fi
+        else
+          echo "⚠️ No se encontraron archivos para analizar"
+          echo "scanned_count=0" >> $GITHUB_OUTPUT
+          echo "is_safe=true" >> $GITHUB_OUTPUT
+          echo "vulnerable_files=" >> $GITHUB_OUTPUT
+        fi
 
     - name: ✅ Send Telegram - Security Passed
       if: success()
@@ -76,6 +161,47 @@ jobs:
         MESSAGE="${MESSAGE}📊 *Files scanned:* ${{ steps.scan.outputs.scanned_count }}%0A"
         MESSAGE="${MESSAGE}🛡️ *Status:* ALL SECURE%0A%0A"
         MESSAGE="${MESSAGE}🔄 *Next:* Merging to test branch"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
+
+    - name: 🚨 Send Telegram - Security Failed
+      if: failure() && github.job == 'security-analysis'
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        VULNERABLE_FILES="${{ steps.scan.outputs.vulnerable_files }}"
+        VULN_COUNT=$(echo "$VULNERABLE_FILES" | tr ';' '\n' | grep -c "|")
+        
+        MESSAGE="🚨 *Security Analysis FAILED*%0A%0A"
+        MESSAGE="${MESSAGE}📂 *Branch:* ${{ github.ref_name }}%0A"
+        MESSAGE="${MESSAGE}📊 *Files scanned:* ${{ steps.scan.outputs.scanned_count }}%0A"
+        MESSAGE="${MESSAGE}⚠️ *Vulnerabilities:* $VULN_COUNT%0A"
+        MESSAGE="${MESSAGE}🚫 *Status:* BLOCKED%0A%0A"
+        
+        if [ $VULN_COUNT -gt 0 ]; then
+          MESSAGE="${MESSAGE}📋 *Vulnerable files:*%0A"
+          
+          IFS=';' read -ra FILES <<< "$VULNERABLE_FILES"
+          for item in "${FILES[@]}"; do
+            if [ ! -z "$item" ]; then
+              FILE=$(echo "$item" | cut -d'|' -f1)
+              PROB=$(echo "$item" | cut -d'|' -f2)
+              LANG=$(echo "$item" | cut -d'|' -f3)
+              
+              PERCENT=$(echo "$PROB * 100" | bc 2>/dev/null || echo "0")
+              PERCENT_INT=$(printf "%.0f" $PERCENT 2>/dev/null || echo "0")
+              
+              MESSAGE="${MESSAGE}%0A📄 \`$(basename "$FILE")\`%0A"
+              MESSAGE="${MESSAGE}   🔤 $LANG | ⚠️ ${PERCENT_INT}%%%0A"
+            fi
+          done
+        fi
+        
+        MESSAGE="${MESSAGE}%0A🔗 *Pipeline blocked. Check logs for details.*"
         
         curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
           -d "chat_id=${TELEGRAM_CHAT_ID}" \
