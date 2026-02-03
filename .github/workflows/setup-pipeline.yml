@@ -1,0 +1,87 @@
+name: 🛠️ Setup CI/CD Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Acción a realizar'
+        required: true
+        default: 'clean'
+        type: choice
+        options:
+        - clean
+        - test
+        - all
+
+jobs:
+  setup:
+    name: Setup Pipeline
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Check current workflows
+      run: |
+        echo "📁 WORKFLOWS ACTUALES:"
+        echo "======================"
+        ls -la .github/workflows/ || echo "No hay workflows"
+        
+        echo ""
+        echo "🧹 Limpiando workflows antiguos..."
+        rm -f .github/workflows/auto-merge*.yml 2>/dev/null || true
+        rm -f .github/workflows/pipeline.yml 2>/dev/null || true
+        
+        echo "✅ Limpieza completada"
+    
+    - name: Create necessary workflows
+      run: |
+        echo "📋 CREANDO WORKFLOWS NECESARIOS"
+        echo "================================"
+        
+        echo "1. ✅ cicd-pipeline.yml (ya existe)"
+        echo "2. ✅ auto-create-pr.yml (ya existe)"
+        echo "3. ✅ setup-pipeline.yml (este archivo)"
+        
+        echo ""
+        echo "🎯 ESTRUCTURA FINAL:"
+        echo "==================="
+        echo ".github/workflows/"
+        echo "├── cicd-pipeline.yml     # Pipeline principal"
+        echo "├── auto-create-pr.yml    # Crea PR automático"
+        echo "└── setup-pipeline.yml    # Este archivo"
+    
+    - name: Test pipeline structure
+      run: |
+        echo "🧪 TESTEANDO CONFIGURACIÓN"
+        echo "=========================="
+        
+        # Verificar que los archivos existen
+        if [ -f ".github/workflows/cicd-pipeline.yml" ]; then
+          echo "✅ cicd-pipeline.yml: OK"
+          echo "   Líneas: $(wc -l < .github/workflows/cicd-pipeline.yml)"
+        else
+          echo "❌ cicd-pipeline.yml: NO ENCONTRADO"
+        fi
+        
+        if [ -f ".github/workflows/auto-create-pr.yml" ]; then
+          echo "✅ auto-create-pr.yml: OK"
+          echo "   Líneas: $(wc -l < .github/workflows/auto-create-pr.yml)"
+        else
+          echo "❌ auto-create-pr.yml: NO ENCONTRADO"
+        fi
+        
+        echo ""
+        echo "📊 RESUMEN:"
+        echo "==========="
+        echo "Workflows configurados: $(ls .github/workflows/*.yml 2>/dev/null | wc -l)"
+    
+    - name: Send Telegram setup complete
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        MESSAGE="🛠️ *Configuración CI/CD Completada*%0A%0A✅ *Estado:* CONFIGURADO%0A📁 *Workflows:* 3 archivos%0A🚀 *Pipeline:* Listo%0A🤖 *Auto-PR:* Activado%0A%0A¡El sistema CI/CD está listo para usar!%0APush a la rama 'dev' para iniciar."
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"

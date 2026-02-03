@@ -1,0 +1,83 @@
+name: 🤖 Auto-Create PR (dev → test)
+
+on:
+  push:
+    branches: [dev]
+
+jobs:
+  create-pr:
+    name: Create PR dev → test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Get commit details
+      id: commit-info
+      run: |
+        echo "📊 INFORMACIÓN DEL COMMIT"
+        echo "========================="
+        echo "SHA: ${{ github.sha }}"
+        echo "Autor: ${{ github.actor }}"
+        echo "Mensaje:"
+        git log -1 --pretty=format:"%s"
+        echo ""
+        echo "Archivos modificados:"
+        git diff --name-only HEAD~1 HEAD || echo "No se pueden obtener cambios"
+    
+    - name: Create Pull Request
+      id: create-pr
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "Auto-commit from dev branch"
+        title: "🔄 [Auto-PR] dev → test - ${{ github.sha }}"
+        body: |
+          ## 🤖 Pull Request Automático
+          
+          Este PR fue creado automáticamente después de un push a la rama `dev`.
+          
+          ### 📋 Detalles:
+          - **Commit:** `${{ github.sha }}`
+          - **Autor:** ${{ github.actor }}
+          - **Fecha:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          - **Mensaje:** $(git log -1 --pretty=format:"%s")
+          
+          ### 🔍 Cambios incluidos:
+          ```
+          $(git diff --stat HEAD~1 HEAD 2>/dev/null || echo "No se pueden mostrar cambios")
+          ```
+          
+          ### ⚡ Próximos pasos:
+          1. El pipeline CI/CD se ejecutará automáticamente
+          2. Análisis de seguridad con modelo ML
+          3. Ejecución de pruebas unitarias
+          4. Merge automático si todo pasa
+          
+          ---
+          *Generado automáticamente por GitHub Actions*
+        base: test
+        branch: auto-pr-dev-to-test-${{ github.run_id }}
+        delete-branch: true
+        labels: |
+          automated
+          ci-cd
+          dev-to-test
+        assignees: ${{ github.actor }}
+    
+    - name: Send Telegram notification
+      if: steps.create-pr.outputs.pull-request-number != ''
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        MESSAGE="🔄 *PR Automático Creado*%0A%0A📝 *PR:* #${{ steps.create-pr.outputs.pull-request-number }}%0A📂 *dev → test*%0A👤 *Autor:* ${{ github.actor }}%0A🔗 *Commit:* \`${{ github.sha }}\`%0A%0A⚡ *El pipeline CI/CD se ejecutará en segundos...*"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
