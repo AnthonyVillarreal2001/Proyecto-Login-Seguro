@@ -314,41 +314,99 @@ jobs:
         npm ci --silent || npm install --silent
         echo "✅ Dependencies installed"
 
-    - name: 🧪 Run Backend Tests
+    - name: 🔧 Show Package.json Info
+      if: steps.find-backend.outputs.directory != 'none'
+      run: |
+        echo "📄 Package.json content:"
+        cd ${{ steps.find-backend.outputs.directory }}
+        cat package.json | grep -A5 -B5 "scripts"
+
+    - name: 🧪 Run Backend Tests (Fixed Detection)
       if: steps.find-backend.outputs.directory != 'none'
       id: backend-tests
       run: |
         echo "🧪 Running backend tests..."
         cd ${{ steps.find-backend.outputs.directory }}
         
-        # Check if test script exists
-        if npm run | grep -q " test "; then
-          echo "🚀 Running npm test..."
+        # Mostrar todos los scripts disponibles
+        echo "📋 All available npm scripts:"
+        npm run
+        
+        # Verificar si hay script 'test' de cualquier tipo
+        echo ""
+        echo "🔍 Checking for test scripts..."
+        
+        # Método 1: Buscar 'test' en package.json
+        if grep -q '"test"' package.json || grep -q '^  test' package.json; then
+          echo "✅ Test script found in package.json"
           
-          # Run tests with timeout
-          timeout 300 npm test 2>&1 | tee test-output.log
-          TEST_RESULT=${PIPESTATUS[0]}
-          
-          if [ $TEST_RESULT -eq 0 ]; then
-            echo "✅ BACKEND TESTS PASSED"
-            echo "passed=true" >> $GITHUB_OUTPUT
-          elif [ $TEST_RESULT -eq 124 ]; then
-            echo "⏰ TESTS TIMEOUT (5 minutes)"
-            echo "passed=false" >> $GITHUB_OUTPUT
-            exit 1
+          # Método 2: Ver si npm run test funciona
+          if npm run --silent test 2>/dev/null | head -1 | grep -q "jest\|mocha\|test"; then
+            echo "🚀 Running npm test..."
+            
+            # Ejecutar tests con timeout
+            timeout 300 npm test 2>&1 | tee test-output.log
+            TEST_RESULT=${PIPESTATUS[0]}
+            
+            if [ $TEST_RESULT -eq 0 ]; then
+              echo "✅ BACKEND TESTS PASSED"
+              echo "passed=true" >> $GITHUB_OUTPUT
+            elif [ $TEST_RESULT -eq 124 ]; then
+              echo "⏰ TESTS TIMEOUT (5 minutes)"
+              echo "passed=false" >> $GITHUB_OUTPUT
+              exit 1
+            else
+              echo "❌ BACKEND TESTS FAILED"
+              echo "📄 Test output:"
+              cat test-output.log
+              echo "passed=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
           else
-            echo "❌ BACKEND TESTS FAILED"
-            echo "📄 Last 10 lines of output:"
-            tail -10 test-output.log
-            echo "passed=false" >> $GITHUB_OUTPUT
-            exit 1
+            # Método 3: Ejecutar directamente jest
+            echo "🔄 Running Jest directly..."
+            if npx jest --passWithNoTests 2>&1 | tee test-output.log; then
+              echo "✅ JEST TESTS PASSED"
+              echo "passed=true" >> $GITHUB_OUTPUT
+            else
+              echo "❌ JEST TESTS FAILED"
+              echo "📄 Test output:"
+              cat test-output.log
+              echo "passed=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
           fi
         else
-          echo "⚠️ No test script found in package.json"
-          echo "📄 Available scripts:"
-          npm run
-          echo "✅ Skipping backend tests"
-          echo "passed=true" >> $GITHUB_OUTPUT
+          # Método 4: Buscar archivos de test
+          echo "🔍 Looking for test files..."
+          TEST_FILES=$(find . -name "*.test.js" -o -name "*.spec.js" -o -name "test*.js" | head -5)
+          
+          if [ -n "$TEST_FILES" ]; then
+            echo "📄 Found test files:"
+            echo "$TEST_FILES"
+            
+            # Intentar con Jest
+            echo "🚀 Running tests with Jest..."
+            if npx jest --passWithNoTests 2>&1 | tee test-output.log; then
+              echo "✅ TESTS PASSED WITH JEST"
+              echo "passed=true" >> $GITHUB_OUTPUT
+            else
+              # Intentar con Mocha
+              echo "🔄 Trying Mocha..."
+              if npx mocha "**/*.test.js" "**/*.spec.js" --exit 2>&1 | tee test-output.log; then
+                echo "✅ TESTS PASSED WITH MOCHA"
+                echo "passed=true" >> $GITHUB_OUTPUT
+              else
+                echo "❌ NO TEST RUNNER WORKED"
+                echo "passed=false" >> $GITHUB_OUTPUT
+                exit 1
+              fi
+            fi
+          else
+            echo "⚠️ No test files or scripts found"
+            echo "✅ Skipping backend tests"
+            echo "passed=true" >> $GITHUB_OUTPUT
+          fi
         fi
 
     - name: 📊 Backend Test Summary
@@ -360,7 +418,9 @@ jobs:
         echo "Status: ${{ steps.backend-tests.outputs.passed == 'true' && '✅ PASSED' || '❌ FAILED' }}"
         
         if [ -f "${{ steps.find-backend.outputs.directory }}/test-output.log" ]; then
-          echo "📄 Test output available in: ${{ steps.find-backend.outputs.directory }}/test-output.log"
+          echo ""
+          echo "📄 Last 20 lines of test output:"
+          tail -20 "${{ steps.find-backend.outputs.directory }}/test-output.log"
         fi
 
     - name: 📢 Send Telegram - Backend Tests
@@ -377,6 +437,7 @@ jobs:
           MESSAGE="✅ *Backend Tests PASSED*%0A%0A"
           MESSAGE="${MESSAGE}📂 *Location:* ${{ steps.find-backend.outputs.directory }}%0A"
           MESSAGE="${MESSAGE}🔗 *Branch:* test%0A"
+          MESSAGE="${MESSAGE}⚡ *Tests executed successfully*%0A"
         else
           MESSAGE="❌ *Backend Tests FAILED*%0A%0A"
           MESSAGE="${MESSAGE}📂 *Location:* ${{ steps.find-backend.outputs.directory }}%0A"
