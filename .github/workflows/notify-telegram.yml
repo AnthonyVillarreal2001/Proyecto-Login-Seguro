@@ -1,0 +1,67 @@
+name: Telegram Notifications
+
+on:
+  pull_request:
+    branches: [ "dev", "test", "main" ]
+    types: [opened, synchronize, closed]
+    paths:
+      - "**/*.py"
+      - "**/*.java"
+      - "**/*.js"
+      - "**/*.c"
+      - "**/*.cs"
+
+  workflow_run:
+    workflows: ["Security Scan on Pull Requests"]
+    types: [completed]
+
+jobs:
+  notify:
+    name: Send Telegram Notification
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt || true
+        pip install joblib datasets scikit-learn==1.5.2 scipy requests pandas
+
+    - name: List changed files
+      id: files
+      uses: tj-actions/changed-files@v39
+
+    - name: Select code file
+      id: pickfile
+      run: |
+        echo "Detecting modified source files..."
+        for file in ${{ steps.files.outputs.all_changed_files }}; do
+          if [[ $file == *.py || $file == *.java || $file == *.js || $file == *.c || $file == *.cs ]]; then
+            echo "file_to_scan=$file" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        done
+        echo "file_to_scan=NONE" >> $GITHUB_OUTPUT
+
+    - name: Run Security Check
+      id: scan
+      if: steps.pickfile.outputs.file_to_scan != 'NONE'
+      run: |
+        RESULT=$(python scripts/security_check.py "${{ steps.pickfile.outputs.file_to_scan }}" || echo '{"status": "ERROR"}')
+        echo "result=$RESULT" >> $GITHUB_OUTPUT
+
+    - name: Notify Telegram
+      if: steps.pickfile.outputs.file_to_scan != 'NONE'
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        python scripts/telegram_notify.py "${{ steps.pickfile.outputs.file_to_scan }}" '${{ steps.scan.outputs.result }}'
