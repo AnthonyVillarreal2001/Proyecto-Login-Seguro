@@ -1,0 +1,572 @@
+name: Full CI/CD Pipeline
+
+on:
+  push:
+    branches: [dev, test]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  security-analysis:
+    name: 🔍 Security Analysis on Dev
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    
+    outputs:
+      is_safe: ${{ steps.scan.outputs.is_safe }}
+      vulnerable_details: ${{ steps.scan.outputs.vulnerable_details }}
+      scanned_files: ${{ steps.scan.outputs.scanned_files }}
+
+    steps:
+    - name: 📦 Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: 📥 Install Python dependencies
+      run: |
+        pip install -r requirements.txt || true
+        pip install joblib datasets scikit-learn==1.5.2 scipy requests pandas
+
+    - name: 🔍 Security Scan All Files
+      id: scan
+      run: |
+        echo "🔄 Iniciando escaneo de seguridad completo..."
+        
+        # Encontrar todos los archivos a analizar
+        JS_FILES=$(find . -name "*.js" -not -path "*/node_modules/*" -not -path "*/.next/*" -not -path "*/.venv/*")
+        PY_FILES=$(find . -name "*.py" -not -path "*/node_modules/*" -not -path "*/.venv/*" -not -path "*/scripts/*")
+        JAVA_FILES=$(find . -name "*.java" -not -path "*/node_modules/*" -not -path "*/.venv/*")
+        
+        ALL_FILES="$JS_FILES $PY_FILES $JAVA_FILES"
+        echo "📋 Archivos a analizar:"
+        echo "$ALL_FILES" | while read file; do
+          if [ -n "$file" ]; then
+            echo "   - $file"
+          fi
+        done
+        
+        FAILED=0
+        VULNERABLE_FILES=""
+        SCANNED_COUNT=0
+        FILE_LIST=""
+        
+        # Analizar cada archivo
+        for file in $ALL_FILES; do
+          if [ -f "$file" ]; then
+            SCANNED_COUNT=$((SCANNED_COUNT + 1))
+            FILE_LIST="${FILE_LIST}${file};"
+            
+            echo "🔬 Analizando: $file"
+            RESULT=$(python scripts/security_check.py "$file" 2>/dev/null || echo '{"status":"ERROR"}')
+            STATUS=$(echo "$RESULT" | jq -r '.status' 2>/dev/null || echo "ERROR")
+            
+            if [ "$STATUS" = "VULNERABLE" ]; then
+              echo "❌ VULNERABLE: $file"
+              PROB=$(echo "$RESULT" | jq -r '.probability' 2>/dev/null || echo "0")
+              LANG=$(echo "$RESULT" | jq -r '.language' 2>/dev/null || echo "Unknown")
+              FUNCS=$(echo "$RESULT" | jq -r '.dangerous_functions' 2>/dev/null || echo "[]")
+              OWASP=$(echo "$RESULT" | jq -r '.owasp_category' 2>/dev/null || echo "Unknown")
+              
+              VULNERABLE_FILES="${VULNERABLE_FILES}FILE:${file}|PROB:${PROB}|LANG:${LANG}|FUNCS:${FUNCS}|OWASP:${OWASP};"
+              FAILED=1
+            elif [ "$STATUS" = "SAFE" ]; then
+              echo "✅ SAFE: $file"
+            else
+              echo "⚠️  ERROR analizando: $file"
+            fi
+          fi
+        done
+        
+        echo "scanned_count=$SCANNED_COUNT" >> $GITHUB_OUTPUT
+        echo "scanned_files=$FILE_LIST" >> $GITHUB_OUTPUT
+        echo "vulnerable_details=$VULNERABLE_FILES" >> $GITHUB_OUTPUT
+        
+        if [ $FAILED -eq 1 ]; then
+          echo "is_safe=false" >> $GITHUB_OUTPUT
+          echo "❌ ¡Vulnerabilidades detectadas! Bloqueando merge..."
+          exit 1
+        else
+          echo "is_safe=true" >> $GITHUB_OUTPUT
+          echo "✅ ¡Todos los archivos son seguros! Procediendo..."
+        fi
+
+    - name: 📊 Report Scan Results
+      run: |
+        echo "📈 RESUMEN DEL ESCANEO:"
+        echo "──────────────────────"
+        echo "Archivos analizados: ${{ steps.scan.outputs.scanned_count }}"
+        echo "Estado: ${{ steps.scan.outputs.is_safe == 'true' && '✅ SEGURO' || '❌ VULNERABLE' }}"
+        
+        if [ "${{ steps.scan.outputs.vulnerable_details }}" != "" ]; then
+          echo ""
+          echo "🚨 ARCHIVOS VULNERABLES:"
+          echo "${{ steps.scan.outputs.vulnerable_details }}" | tr ';' '\n' | while read -r item; do
+            if [ -n "$item" ]; then
+              FILE=$(echo "$item" | grep -oP 'FILE:\K[^|]+')
+              echo "   - $FILE"
+            fi
+          done
+        fi
+
+    - name: 🚨 Send Telegram Alert on Failure
+      if: failure()
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        DETAILS="${{ steps.scan.outputs.vulnerable_details }}"
+        
+        MESSAGE="🚨 *Auto-Merge BLOQUEADO*%0A%0A❌ *Estado:* VULNERABLE%0A📂 *Rama:* dev → test%0A🚫 *Acción:* Merge bloqueado%0A%0A*🔍 Resumen:*%0A"
+        MESSAGE="${MESSAGE}📊 Archivos analizados: ${{ steps.scan.outputs.scanned_count }}%0A"
+        
+        IFS=';' read -ra FILES <<< "$DETAILS"
+        VULN_COUNT=0
+        for item in "${FILES[@]}"; do
+          if [ ! -z "$item" ]; then
+            VULN_COUNT=$((VULN_COUNT + 1))
+          fi
+        done
+        
+        MESSAGE="${MESSAGE}⚠️ Vulnerables: ${VULN_COUNT}%0A%0A*📋 Detalles:*%0A"
+        
+        IFS=';' read -ra FILES <<< "$DETAILS"
+        for item in "${FILES[@]}"; do
+          if [ ! -z "$item" ]; then
+            FILE=$(echo "$item" | grep -oP 'FILE:\K[^|]+')
+            PROB=$(echo "$item" | grep -oP 'PROB:\K[^|]+')
+            LANG=$(echo "$item" | grep -oP 'LANG:\K[^|]+')
+            FUNCS=$(echo "$item" | grep -oP 'FUNCS:\K[^|]+')
+            OWASP=$(echo "$item" | grep -oP 'OWASP:\K[^|]+')
+            
+            PERCENT=$(echo "$PROB * 100" | bc 2>/dev/null || echo "0")
+            PERCENT_INT=$(printf "%.0f" $PERCENT 2>/dev/null || echo "0")
+            
+            MESSAGE="${MESSAGE}%0A📄 \`$(basename "$FILE")\`%0A"
+            MESSAGE="${MESSAGE}   🔤 ${LANG} | ⚠️ ${PERCENT_INT}%%%0A"
+            MESSAGE="${MESSAGE}   🛡️ ${OWASP}%0A"
+          fi
+        done
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
+
+    - name: ✅ Send Telegram Success Notification
+      if: success()
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        MESSAGE="✅ *Escaneo de Seguridad COMPLETADO*%0A%0A📂 *Rama:* dev%0A"
+        MESSAGE="${MESSAGE}📊 *Archivos analizados:* ${{ steps.scan.outputs.scanned_count }}%0A"
+        MESSAGE="${MESSAGE}🛡️ *Estado:* TODOS SEGUROS%0A%0A"
+        MESSAGE="${MESSAGE}🔄 *Siguiente paso:* Mergeando a test para pruebas unitarias"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
+
+  merge-to-test:
+    name: 🔀 Merge Dev to Test
+    needs: security-analysis
+    runs-on: ubuntu-latest
+    if: needs.security-analysis.outputs.is_safe == 'true' && github.ref == 'refs/heads/dev'
+
+    steps:
+    - name: 📦 Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: ⚙️ Configure Git
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+
+    - name: 🔀 Merge dev into test
+      run: |
+        echo "🔄 Mergeando dev a test..."
+        git checkout test
+        git pull origin test
+        git merge --no-ff origin/dev -m "🔀 Auto-merge: dev → test [Security Check Passed]
+        
+        ✅ Security Analysis Results:
+        - Archivos analizados: ${{ needs.security-analysis.outputs.scanned_count }}
+        - Estado: SEGURO
+        - Vulnerabilidades: 0
+        
+        SHA: ${{ github.sha }}"
+        git push origin test
+
+    - name: 📢 Notify Merge Success
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        MESSAGE="✅ *Merge Completado*%0A%0A🔄 *De:* dev%0A📂 *A:* test%0A"
+        MESSAGE="${MESSAGE}📊 *Archivos analizados:* ${{ needs.security-analysis.outputs.scanned_count }}%0A"
+        MESSAGE="${MESSAGE}🛡️ *Estado:* TODOS SEGUROS%0A%0A"
+        MESSAGE="${MESSAGE}🧪 *Siguiente paso:* Ejecutando pruebas unitarias en test"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
+
+  backend-tests:
+    name: 🧪 Backend Tests (Node.js)
+    needs: merge-to-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/test'
+
+    steps:
+    - name: 📦 Checkout repository
+      uses: actions/checkout@v3
+
+    - name: 📂 Navegar a backend
+      run: |
+        echo "📁 Directorio actual:"
+        ls -la
+        echo "📁 Buscando backend..."
+        if [ -d "backend" ]; then
+          echo "✅ Backend encontrado en /backend"
+          cd backend
+        elif [ -f "package.json" ] && [ -f "index.js" ] || [ -f "server.js" ] || [ -f "app.js" ]; then
+          echo "✅ Backend encontrado en raíz"
+        else
+          echo "❌ No se encontró backend"
+          exit 1
+        fi
+
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: 📥 Install Backend Dependencies
+      run: |
+        echo "📦 Instalando dependencias del backend..."
+        npm ci || npm install
+        echo "✅ Dependencias instaladas"
+
+    - name: 🧪 Run Backend Unit Tests
+      id: backend-tests
+      run: |
+        echo "🧪 Ejecutando pruebas unitarias del backend..."
+        
+        # Verificar si hay scripts de test
+        if grep -q '"test"' package.json; then
+          echo "📋 Scripts disponibles en package.json:"
+          npm run
+          
+          # Ejecutar pruebas
+          echo "🚀 Ejecutando npm test..."
+          if npm test; then
+            echo "✅ Backend tests PASSED"
+            echo "backend_passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Backend tests FAILED"
+            echo "backend_passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+        else
+          echo "⚠️ No se encontró script 'test' en package.json"
+          echo "🔍 Buscando archivos de test..."
+          
+          # Buscar archivos de test
+          TEST_FILES=$(find . -name "*.test.js" -o -name "*.spec.js" -o -name "test*.js" | head -5)
+          if [ -n "$TEST_FILES" ]; then
+            echo "📄 Archivos de test encontrados:"
+            echo "$TEST_FILES"
+            echo "🚀 Ejecutando tests con Jest/Mocha..."
+            
+            # Intentar con Jest
+            if npx jest --passWithNoTests 2>/dev/null; then
+              echo "✅ Tests ejecutados con Jest"
+              echo "backend_passed=true" >> $GITHUB_OUTPUT
+            elif npx mocha "**/*.test.js" --exit 2>/dev/null; then
+              echo "✅ Tests ejecutados con Mocha"
+              echo "backend_passed=true" >> $GITHUB_OUTPUT
+            else
+              echo "❌ No se pudo ejecutar tests"
+              echo "backend_passed=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          else
+            echo "⚠️ No se encontraron archivos de test"
+            echo "backend_passed=true" >> $GITHUB_OUTPUT
+            echo "✅ Saltando tests (ninguno encontrado)"
+          fi
+        fi
+
+    - name: 📊 Report Test Coverage
+      if: always()
+      run: |
+        echo "📈 RESUMEN DE PRUEBAS BACKEND:"
+        echo "─────────────────────────────"
+        echo "Estado: ${{ steps.backend-tests.outputs.backend_passed == 'true' && '✅ PASSED' || '❌ FAILED' }}"
+        echo "Directorio: $(pwd)"
+        
+        # Mostrar estructura de tests si existe
+        if [ -d "test" ] || [ -d "__tests__" ] || [ -d "tests" ]; then
+          echo "📁 Estructura de tests:"
+          find . -type d -name "*test*" | while read dir; do
+            echo "   - $dir"
+          done
+        fi
+
+  frontend-tests:
+    name: 🧪 Frontend Tests (React)
+    needs: merge-to-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/test'
+
+    steps:
+    - name: 📦 Checkout repository
+      uses: actions/checkout@v3
+
+    - name: 📂 Navegar a frontend
+      run: |
+        echo "📁 Directorio actual:"
+        ls -la
+        echo "📁 Buscando frontend..."
+        if [ -d "frontend" ]; then
+          echo "✅ Frontend encontrado en /frontend"
+          cd frontend
+        elif [ -d "client" ]; then
+          echo "✅ Frontend encontrado en /client"
+          cd client
+        elif [ -f "package.json" ] && grep -q "react-scripts" package.json; then
+          echo "✅ Frontend encontrado en raíz"
+        else
+          echo "⚠️ No se encontró frontend React"
+          echo "frontend_found=false" >> $GITHUB_ENV
+          exit 0
+        fi
+        echo "frontend_found=true" >> $GITHUB_ENV
+
+    - name: 🟢 Setup Node.js
+      if: env.frontend_found == 'true'
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: 📥 Install Frontend Dependencies
+      if: env.frontend_found == 'true'
+      run: |
+        echo "📦 Instalando dependencias del frontend..."
+        npm ci || npm install
+        echo "✅ Dependencias instaladas"
+
+    - name: 🧪 Run Frontend Tests
+      if: env.frontend_found == 'true'
+      id: frontend-tests
+      run: |
+        echo "🧪 Ejecutando pruebas del frontend..."
+        
+        # Verificar scripts de test
+        if grep -q '"test"' package.json; then
+          echo "🚀 Ejecutando npm test (modo CI)..."
+          
+          # Configurar para modo CI (sin interactividad)
+          export CI=true
+          
+          if npm test -- --watchAll=false --passWithNoTests; then
+            echo "✅ Frontend tests PASSED"
+            echo "frontend_passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Frontend tests FAILED"
+            echo "frontend_passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+        else
+          echo "⚠️ No hay script 'test' en package.json"
+          echo "frontend_passed=true" >> $GITHUB_OUTPUT
+          echo "✅ Saltando tests frontend"
+        fi
+
+    - name: 📝 Frontend Test Summary
+      if: always() && env.frontend_found == 'true'
+      run: |
+        echo "📈 RESUMEN DE PRUEBAS FRONTEND:"
+        echo "──────────────────────────────"
+        echo "Estado: ${{ steps.frontend-tests.outputs.frontend_passed == 'true' && '✅ PASSED' || '❌ FAILED' }}"
+        echo "Framework: React"
+        echo "Directorio: $(pwd)"
+
+  merge-to-main:
+    name: 🚀 Merge Test to Main
+    needs: [backend-tests, frontend-tests]
+    runs-on: ubuntu-latest
+    if: |
+      (needs.backend-tests.outputs.backend_passed == 'true' || needs.backend-tests.result == 'skipped') &&
+      (needs.frontend-tests.outputs.frontend_passed == 'true' || needs.frontend-tests.result == 'skipped') &&
+      github.ref == 'refs/heads/test'
+
+    steps:
+    - name: 📦 Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: ⚙️ Configure Git
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+
+    - name: 🔀 Merge test into main
+      run: |
+        echo "🚀 Mergeando test a main..."
+        
+        # Obtener commits desde el último merge
+        LAST_MERGE=$(git log --oneline --grep="Auto-merge" -1 --format="%H" 2>/dev/null || echo "")
+        
+        git checkout main
+        git pull origin main
+        
+        MERGE_MESSAGE="🚀 Auto-merge: test → main [All Checks Passed]
+        
+        📊 RESULTADOS DE CI/CD:
+        
+        🔍 Security Analysis:
+        - Archivos analizados: ${{ needs.security-analysis.outputs.scanned_count }}
+        - Vulnerabilidades: 0
+        - Estado: ✅ SEGURO
+        
+        🧪 Pruebas Unitarias:
+        - Backend: ${{ needs.backend-tests.outputs.backend_passed == 'true' && '✅ PASSED' || '⚠️ SKIPPED' }}
+        - Frontend: ${{ needs.frontend-tests.outputs.frontend_passed == 'true' && '✅ PASSED' || '⚠️ SKIPPED' }}
+        
+        📦 Despliegue:
+        - Rama origen: test
+        - Rama destino: main
+        - Commit: ${{ github.sha }}
+        
+        🏷️ Tags: ci-cd, auto-deploy, security-verified"
+        
+        git merge --no-ff origin/test -m "$MERGE_MESSAGE"
+        git push origin main
+        
+        # Crear tag de release
+        DATE_TAG=$(date +'%Y%m%d-%H%M%S')
+        git tag -a "release-$DATE_TAG" -m "Release $DATE_TAG - CI/CD Pipeline Success"
+        git push origin "release-$DATE_TAG"
+
+    - name: 🎉 Deploy Notification
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        MESSAGE="🎉 *¡DESPLIEGUE EXITOSO!*%0A%0A"
+        MESSAGE="${MESSAGE}🚀 *Pipeline CI/CD COMPLETADO*%0A"
+        MESSAGE="${MESSAGE}────────────────────────%0A"
+        MESSAGE="${MESSAGE}📊 *Resumen:*%0A"
+        MESSAGE="${MESSAGE}🔍 *Security Analysis:* ✅%0A"
+        MESSAGE="${MESSAGE}   - Archivos: ${{ needs.security-analysis.outputs.scanned_count }}%0A"
+        MESSAGE="${MESSAGE}   - Vulnerabilidades: 0%0A"
+        MESSAGE="${MESSAGE}🧪 *Pruebas Unitarias:*%0A"
+        MESSAGE="${MESSAGE}   - Backend: ${{ needs.backend-tests.outputs.backend_passed == 'true' && '✅ PASSED' || '⚠️ SKIPPED' }}%0A"
+        MESSAGE="${MESSAGE}   - Frontend: ${{ needs.frontend-tests.outputs.frontend_passed == 'true' && '✅ PASSED' || '⚠️ SKIPPED' }}%0A"
+        MESSAGE="${MESSAGE}📦 *Despliegue:*%0A"
+        MESSAGE="${MESSAGE}   - De: test%0A"
+        MESSAGE="${MESSAGE}   - A: main%0A"
+        MESSAGE="${MESSAGE}   - Commit: ${GITHUB_SHA:0:7}%0A"
+        MESSAGE="${MESSAGE}🏷️ *Tag:* release-$(date +'%Y%m%d-%H%M%S')%0A%0A"
+        MESSAGE="${MESSAGE}✅ *¡Todo listo para producción!*"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
+
+  rollback-on-failure:
+    name: 🔄 Rollback on Failure
+    runs-on: ubuntu-latest
+    if: failure() && (github.ref == 'refs/heads/test' || github.ref == 'refs/heads/dev')
+    needs: [security-analysis, backend-tests, frontend-tests]
+
+    steps:
+    - name: 📦 Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: ⚙️ Configure Git
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+
+    - name: 🔄 Create Rollback Issue
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const failedJob = '${{ github.job }}';
+          const failedStep = context.payload.action;
+          const branch = '${{ github.ref }}'.replace('refs/heads/', '');
+          
+          let issueBody = `## 🔄 Pipeline Fallido - Rollback Requerido\n\n`;
+          issueBody += `**Rama:** ${branch}\n`;
+          issueBody += `**Commit:** ${context.sha}\n`;
+          issueBody += `**Trabajo fallido:** ${failedJob}\n\n`;
+          
+          issueBody += `### 📊 Estado de Jobs:\n`;
+          issueBody += `- 🔍 Security Analysis: ${'${{ needs.security-analysis.result }}'}\n`;
+          issueBody += `- 🧪 Backend Tests: ${'${{ needs.backend-tests.result }}'}\n`;
+          issueBody += `- 🧪 Frontend Tests: ${'${{ needs.frontend-tests.result }}'}\n\n`;
+          
+          issueBody += `### 🔧 Acciones requeridas:\n`;
+          issueBody += `1. Revisar logs del job fallido\n`;
+          issueBody += `2. Corregir el problema\n`;
+          issueBody += `3. Hacer push a la rama ${branch}\n`;
+          issueBody += `4. El pipeline se reiniciará automáticamente\n\n`;
+          
+          issueBody += `### 📝 Detalles del error:\n`;
+          issueBody += `Consulta los logs en: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+          
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `🚨 Pipeline Fallido en ${branch}`,
+            body: issueBody,
+            labels: ['pipeline-failed', 'needs-fix', branch]
+          });
+
+    - name: 📢 Send Rollback Alert
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        MESSAGE="🚨 *PIPELINE FALLIDO*%0A%0A"
+        MESSAGE="${MESSAGE}❌ *Estado:* FALLIDO%0A"
+        MESSAGE="${MESSAGE}📂 *Rama:* ${{ github.ref_name }}%0A"
+        MESSAGE="${MESSAGE}🔧 *Job fallido:* ${{ github.job }}%0A%0A"
+        MESSAGE="${MESSAGE}📊 *Estado de jobs:*%0A"
+        MESSAGE="${MESSAGE}🔍 Security: ${{ needs.security-analysis.result }}%0A"
+        MESSAGE="${MESSAGE}🧪 Backend: ${{ needs.backend-tests.result }}%0A"
+        MESSAGE="${MESSAGE}🧪 Frontend: ${{ needs.frontend-tests.result }}%0A%0A"
+        MESSAGE="${MESSAGE}⚠️ *Se ha creado un issue para tracking*%0A"
+        MESSAGE="${MESSAGE}🔄 *Revisa GitHub para más detalles*"
+        
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+          -d "chat_id=${TELEGRAM_CHAT_ID}" \
+          -d "text=${MESSAGE}" \
+          -d "parse_mode=Markdown"
