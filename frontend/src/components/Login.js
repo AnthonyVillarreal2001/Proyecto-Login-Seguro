@@ -140,6 +140,7 @@ const Login = () => {
     }
   };
 
+  // En la función verifyFace, manejar error de duplicado específico
   const verifyFace = async () => {
     setLoading(true);
     try {
@@ -164,7 +165,7 @@ const Login = () => {
 
       if (res.data.token) {
         localStorage.setItem('token', res.data.token);
-        setModalMessage('¡Verificación facial exitosa! Bienvenido.');
+        setModalMessage('✅ Verificación facial exitosa! Bienvenido.');
         setShowSuccessModal(true);
         
         // Detener cámara
@@ -179,7 +180,17 @@ const Login = () => {
       }
       
     } catch (err) {
-      setModalMessage(err.response?.data?.error || 'Error en verificación facial');
+      // ✅ NUEVO: Manejo específico de error de duplicado
+      if (err.response?.status === 403 && err.response?.data?.message?.includes('múltiples cuentas')) {
+        setModalMessage(
+          `⚠️ ALERTA DE SEGURIDAD\n\n` +
+          `Tu rostro fue detectado en múltiples cuentas.\n` +
+          `Por seguridad, contacta al administrador para resolver este problema.\n\n` +
+          `Error: ${err.response.data.message}`
+        );
+      } else {
+        setModalMessage(err.response?.data?.error || 'Error en verificación facial');
+      }
       setShowErrorModal(true);
     } finally {
       setLoading(false);

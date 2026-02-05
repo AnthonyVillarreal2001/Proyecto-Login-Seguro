@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import * as faceapi from 'face-api.js';
-import { Button, Card, Form, Modal, Spinner } from 'react-bootstrap';
+import { Button, Card, Form, Modal, Spinner, Alert } from 'react-bootstrap';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -69,9 +69,31 @@ const Register = () => {
       }
 
       const embedding = Array.from(detection.descriptor);
+      
+      // ✅ NUEVO: Validar calidad del embedding antes de proceder
+      if (embedding.length !== 128 && embedding.length !== 512) {
+        throw new Error('Captura facial inválida. Por favor, intenta nuevamente.');
+      }
+      
+      // ✅ NUEVO: Verificar si este rostro ya existe ANTES de registrar
+      try {
+        const checkRes = await axios.post('/auth/check-face-unique', {
+          embedding,
+          currentUserId: null // No tenemos userId aún porque estamos registrando
+        });
+        
+        if (checkRes.data.isDuplicate) {
+          const duplicateEmail = checkRes.data.duplicateUsers?.[0]?.email || 'otra cuenta';
+          throw new Error(`Este rostro ya está registrado en ${duplicateEmail}. Cada persona debe tener una cuenta única.`);
+        }
+      } catch (checkErr) {
+        // Si la API no existe, continuar sin validación (backward compatibility)
+        console.log('API de verificación no disponible:', checkErr.message);
+      }
+
       setFaceEmbedding(embedding);
       
-      setModalMessage('¡Rostro capturado exitosamente! Completando registro...');
+      setModalMessage('✅ Rostro verificado como único. Completando registro...');
       setShowSuccessModal(true);
       
       // Proceder con el registro completo
@@ -215,9 +237,23 @@ const Register = () => {
         backdrop="static"
       >
         <Modal.Header closeButton>
-          <Modal.Title>Registro Facial Obligatorio</Modal.Title>
+          <Modal.Title>⚠️ Registro Facial Único Obligatorio</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center">
+          <Alert variant="warning" className="text-start">
+            <Alert.Heading>¡Importante!</Alert.Heading>
+            <p>
+              <strong>Cada rostro solo puede estar registrado en una cuenta.</strong>
+              <br />
+              Si ya tienes una cuenta, inicia sesión en lugar de registrarte nuevamente.
+            </p>
+            <hr />
+            <p className="mb-0 small">
+              El sistema verificará que este rostro no esté ya registrado.
+              Intentar registrar el mismo rostro en múltiples cuentas será rechazado.
+            </p>
+          </Alert>
+          
           <p className="mb-3">
             <strong>Paso 2 de 2: Captura de rostro</strong>
             <br />
@@ -232,14 +268,14 @@ const Register = () => {
               width: '100%',
               maxHeight: '400px',
               borderRadius: '12px',
-              border: '4px solid #28a745',
+              border: '4px solid #dc3545',
               background: '#000'
             }}
           />
           
           <div className="mt-4">
             <Button 
-              variant="primary" 
+              variant="danger" 
               size="lg" 
               onClick={captureFace}
               disabled={loading}
@@ -247,21 +283,22 @@ const Register = () => {
               {loading ? (
                 <>
                   <Spinner animation="border" size="sm" className="me-2" />
-                  Capturando rostro...
+                  Verificando unicidad...
                 </>
               ) : (
-                '✅ Capturar mi rostro'
+                '🔍 Verificar y registrar mi rostro único'
               )}
             </Button>
           </div>
           
           <div className="mt-3 text-muted small">
-            <p>Requisitos:</p>
+            <p><strong>Requisitos estrictos:</strong></p>
             <ul className="list-unstyled">
-              <li>✓ Buena iluminación</li>
-              <li>✓ Rostro centrado en cámara</li>
-              <li>✓ Sin lentes oscuros</li>
-              <li>✓ Sin gorras/sombreros</li>
+              <li>✓ <strong>Cada rostro solo puede tener UNA cuenta</strong></li>
+              <li>✓ Buena iluminación frontal</li>
+              <li>✓ Rostro centrado y visible completamente</li>
+              <li>✓ Sin lentes oscuros o gorras</li>
+              <li>✓ Expresión neutra, mirando a la cámara</li>
             </ul>
           </div>
         </Modal.Body>

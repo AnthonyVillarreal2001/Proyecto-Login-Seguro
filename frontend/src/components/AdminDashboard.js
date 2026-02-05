@@ -3,6 +3,7 @@ import axios from 'axios';
 import ProfileSettings from './ProfileSettings';
 import { Button, Card, Form, ListGroup, Modal, Spinner } from 'react-bootstrap';
 import { initSessionManager } from '../utils/sessionManager';
+import FaceDuplicateManager from './FaceDuplicateManager';
 
 const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
@@ -50,16 +51,31 @@ const AdminDashboard = () => {
 
     const handleUpdatePreferences = async () => {
         try {
-        await axios.put('/profile/preferences', { preferences });
-        // Aplicar tema en tiempo real
-        document.documentElement.setAttribute('data-bs-theme', preferences.theme);
-        setModalMessage('¡Preferencias actualizadas! Tema aplicado correctamente. 😎');
-        setShowSuccessModal(true);
+            // Primero obtenemos el perfil actual para no perder el faceEmbedding
+            const resProfile = await axios.get('/profile');
+            const currentPrefs = resProfile.data.preferences || {};
+            
+            // Mantenemos el faceEmbedding si existe
+            const updatedPreferences = {
+            ...currentPrefs,  // ← Mantiene faceEmbedding si existe
+            theme: preferences.theme,
+            notifications: preferences.notifications
+            };
+            
+            await axios.put('/profile/preferences', { preferences: updatedPreferences });
+            
+            // Aplicar tema inmediatamente
+            document.documentElement.setAttribute('data-bs-theme', preferences.theme);
+            setModalMessage('¡Preferencias guardadas! Tema aplicado.');
+            setShowSuccessModal(true);
+            
+            // Actualizar estado local manteniendo faceEmbedding
+            setPreferences(updatedPreferences);
         } catch (err) {
-        setModalMessage('No se pudieron guardar las preferencias. Intenta de nuevo.');
-        setShowErrorModal(true);
+            setModalMessage('No se pudieron guardar las preferencias. Intenta de nuevo.');
+            setShowErrorModal(true);
         }
-    };
+        };
 
     const handleRegister = async (e) => {
         e.preventDefault();
@@ -141,40 +157,6 @@ const AdminDashboard = () => {
             Cerrar sesión
             </Button>
         </div>
-
-        {/* Sección de Preferencias (nueva para admin) */}
-        <Card className="mb-4 shadow-sm">
-            <Card.Header className="bg-info text-white">
-            <h5 className="mb-0">Mis Preferencias</h5>
-            </Card.Header>
-            <Card.Body>
-            <Form>
-                <Form.Check
-                type="checkbox"
-                id="notifications"
-                label="Recibir notificaciones"
-                checked={preferences.notifications}
-                onChange={e => setPreferences({ ...preferences, notifications: e.target.checked })}
-                className="mb-3"
-                />
-
-                <Form.Group className="mb-3">
-                <Form.Label>Tema de la aplicación</Form.Label>
-                <Form.Select
-                    value={preferences.theme}
-                    onChange={e => setPreferences({ ...preferences, theme: e.target.value })}
-                >
-                    <option value="light">Claro (modo día ☀️)</option>
-                    <option value="dark">Oscuro (modo noche 🌙)</option>
-                </Form.Select>
-                </Form.Group>
-
-                <Button variant="primary" onClick={handleUpdatePreferences}>
-                Guardar preferencias
-                </Button>
-            </Form>
-            </Card.Body>
-        </Card>
 
         {loading && <div className="text-center my-5"><Spinner animation="border" /></div>}
 
@@ -356,6 +338,75 @@ const AdminDashboard = () => {
             </Modal.Body>
             </Modal>
         )}
+
+        <Card className="mb-4 shadow-sm border-warning">
+            <Card.Header className="bg-warning text-dark">
+                <h5 className="mb-0">🔍 Auditoría de Rostros Únicos</h5>
+            </Card.Header>
+            <Card.Body>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                <p className="mb-0">
+                    Verifica que cada rostro esté registrado solo en una cuenta.
+                </p>
+                <Button 
+                    variant="outline-danger" 
+                    onClick={() => {
+                    // Función para verificar duplicados
+                    axios.get('/admin/face-duplicates')
+                        .then(res => {
+                        if (res.data.totalDuplicates > 0) {
+                            setModalMessage(
+                            `⚠️ Se encontraron ${res.data.totalDuplicates} rostros duplicados. ` +
+                            `Revisa la sección de auditoría para más detalles.`
+                            );
+                            setShowErrorModal(true);
+                        } else {
+                            setModalMessage('✅ Todos los rostros son únicos en el sistema.');
+                            setShowSuccessModal(true);
+                        }
+                        })
+                        .catch(err => {
+                        setModalMessage('Error al verificar duplicados: ' + err.message);
+                        setShowErrorModal(true);
+                        });
+                    }}
+                >
+                    🔎 Escanear duplicados
+                </Button>
+                </div>
+                
+                {/* Agregar estadísticas rápidas */}
+                <div className="row text-center">
+                <div className="col-md-4">
+                    <div className="card">
+                    <div className="card-body">
+                        <h3>{users.filter(u => u.preferences?.faceEmbedding).length}</h3>
+                        <p className="text-muted mb-0">Con biometría</p>
+                    </div>
+                    </div>
+                </div>
+                <div className="col-md-4">
+                    <div className="card">
+                    <div className="card-body">
+                        <h3>{users.filter(u => !u.preferences?.faceEmbedding).length}</h3>
+                        <p className="text-muted mb-0">Sin biometría</p>
+                    </div>
+                    </div>
+                </div>
+                <div className="col-md-4">
+                    <div className="card">
+                    <div className="card-body">
+                        <h3>{users.length}</h3>
+                        <p className="text-muted mb-0">Total usuarios</p>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            </Card.Body>
+        </Card>
+
+        {/* Agregar el gestor de duplicados */}
+        <FaceDuplicateManager />
 
         <ProfileSettings />
 

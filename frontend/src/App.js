@@ -21,8 +21,9 @@ function App() {
 
   useEffect(() => {
     const applyTheme = async () => {
-      // Solo aplicar tema si está autenticado
-      if (!isAuthenticated()) {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
         setTheme('light');
         document.documentElement.setAttribute('data-bs-theme', 'light');
         setLoading(false);
@@ -35,21 +36,22 @@ function App() {
         setTheme(userTheme);
         document.documentElement.setAttribute('data-bs-theme', userTheme);
         
-        // Inicializar session manager SOLO UNA VEZ después de cargar el perfil
+        // Solo inicializar session manager si no está inicializado
         if (!sessionInitialized.current) {
-          console.log('Inicializando SessionManager después de cargar perfil...');
+          console.log('Inicializando SessionManager...');
           initSessionManager();
           sessionInitialized.current = true;
         }
         
       } catch (err) {
-        console.warn('No se pudo cargar el tema:', err.message);
-        setTheme('light');
+        console.warn('Error cargando preferencias:', err.message);
         document.documentElement.setAttribute('data-bs-theme', 'light');
         
+        // Si el token es inválido, limpiar
         if (err.response?.status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('sessionID');
+          sessionInitialized.current = false;
         }
       } finally {
         setLoading(false);
