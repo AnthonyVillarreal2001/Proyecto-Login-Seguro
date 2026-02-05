@@ -98,38 +98,6 @@ const ClientDashboard = () => {
       </Card>
 
       <Card className="mb-4 shadow-sm">
-        <Card.Header className="bg-info text-white">
-          <h5 className="mb-0">Preferencias</h5>
-        </Card.Header>
-        <Card.Body>
-          <Form>
-            <Form.Check
-              type="checkbox"
-              id="notifications"
-              label="Recibir notificaciones"
-              checked={preferences.notifications}
-              onChange={e => setPreferences({ ...preferences, notifications: e.target.checked })}
-              className="mb-3"
-            />
-
-            <Form.Group className="mb-3">
-              <Form.Label>Tema de la aplicación</Form.Label>
-              <Form.Select
-                value={preferences.theme}
-                onChange={e => setPreferences({ ...preferences, theme: e.target.value })}
-              >
-                <option value="light">Claro (modo día ☀️)</option>
-                <option value="dark">Oscuro (modo noche 🌙)</option>
-              </Form.Select>
-            </Form.Group>
-
-            <Button variant="primary" onClick={handleUpdatePreferences}>
-              Guardar preferencias
-            </Button>
-          </Form>
-        </Card.Body>
-      </Card>
-      <Card className="mb-4 shadow-sm">
         <Card.Header className="bg-warning text-dark">
           <h5 className="mb-0">Editar mi perfil</h5>
         </Card.Header>
@@ -201,62 +169,6 @@ const ClientDashboard = () => {
               Guardar cambios en perfil
             </Button>
           </Form>
-        </Card.Body>
-      </Card>
-      <Card className="mb-4 shadow-sm border-info">
-        <Card.Header className="bg-info text-white">
-          <h5 className="mb-0">🔐 Estado de Mi Biometría</h5>
-        </Card.Header>
-        <Card.Body>
-          {hasBiometric ? (
-            <div>
-              <Alert variant="success">
-                <Alert.Heading>✅ Rostro Registrado</Alert.Heading>
-                <p>
-                  Tu rostro está registrado y verificado como único en el sistema.
-                  <br />
-                  <small className="text-muted">
-                    No puede ser usado en otras cuentas.
-                  </small>
-                </p>
-              </Alert>
-              
-              <Button 
-                variant="outline-info" 
-                className="me-2"
-                onClick={async () => {
-                  try {
-                    const res = await axios.get('/profile/face-unique');
-                    if (res.data.isUnique) {
-                      setModalMessage('✅ Confirmado: Tu rostro es único en el sistema.');
-                    } else {
-                      setModalMessage(
-                        `⚠️ ALERTA: Tu rostro está registrado en ${res.data.duplicateCount} cuenta(s) adicional(es).\n\n` +
-                        `Contacta al administrador para resolver este problema.`
-                      );
-                    }
-                    setShowSuccessModal(true);
-                  } catch (err) {
-                    setModalMessage('Error al verificar unicidad: ' + err.message);
-                    setShowErrorModal(true);
-                  }
-                }}
-              >
-                🔍 Verificar unicidad
-              </Button>
-            </div>
-          ) : (
-            <Alert variant="warning">
-              <Alert.Heading>⚠️ Sin Biometría Registrada</Alert.Heading>
-              <p>
-                No tienes rostro registrado. Regístralo para mayor seguridad.
-                <br />
-                <small className="text-muted">
-                  Una vez registrado, será único y no podrá ser usado en otras cuentas.
-                </small>
-              </p>
-            </Alert>
-          )}
         </Card.Body>
       </Card>
       <ProfileSettings />
