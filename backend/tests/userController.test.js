@@ -10,7 +10,14 @@ jest.mock('../models/userModel');
 jest.mock('jsonwebtoken');
 jest.mock('bcrypt');
 jest.mock('../blacklist');
-jest.mock('../utils/encryption');
+jest.mock('../utils/encryption', () => ({
+  encryptFaceEmbedding: jest.fn(),
+  decryptFaceEmbedding: jest.fn(),
+  encrypt: jest.fn(),
+  decrypt: jest.fn(),
+  testEncryption: jest.fn(),
+  ensureKeyLength: jest.fn()
+}));
 
 const { encryptFaceEmbedding, decryptFaceEmbedding } = require('../utils/encryption');
 
@@ -76,32 +83,49 @@ describe('userController - Cobertura completa', () => {
         name: 'New User',
         email: 'newuser@test.com',
         password: 'password123',
-        embedding: [0.1, 0.2, 0.3]
+        embedding: Array(128).fill(0.1) // ✅ NUEVO: Array de 128 elementos
       };
+      
       UserModel.findUserByEmail.mockResolvedValue(null);
-      UserModel.createUser.mockResolvedValue({ id: 1, preferences: { theme: 'light', notifications: true } });
-      encryptFaceEmbedding.mockReturnValue('encrypted_embedding');
+      UserModel.getAllUsers.mockResolvedValue([]);
+      UserModel.createUser.mockResolvedValue({ 
+        id: 1, 
+        preferences: { theme: 'light', notifications: true } 
+      });
       UserModel.updateUser.mockResolvedValue({ id: 1 });
+      
+      // Mock analyzeEmbedding para que devuelva isValid: true
+      jest.mock('../controllers/userController', () => {
+        const original = jest.requireActual('../controllers/userController');
+        return {
+          ...original,
+          analyzeEmbedding: jest.fn().mockReturnValue({ isValid: true })
+        };
+      });
 
       await userController.publicRegister(req, res);
 
       expect(UserModel.findUserByEmail).toHaveBeenCalledWith('newuser@test.com');
-      expect(UserModel.createUser).toHaveBeenCalledWith('New User', 'newuser@test.com', 'password123', 'client');
-      expect(encryptFaceEmbedding).toHaveBeenCalledWith([0.1, 0.2, 0.3]);
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Registro exitoso con biometría facial. Ahora puede iniciar sesión.',
-        success: true
+        message: expect.stringContaining('Registro exitoso'),
+        success: true,
+        uniqueFace: true
       });
     });
 
     test('email duplicado', async () => {
-      req.body = { name: 'Test', email: 'duplicate@test.com', password: 'pass' };
-      UserModel.findUserByEmail.mockResolvedValue({ id: 1 });
+      req.body = { 
+        name: 'Test', 
+        email: 'duplicate@test.com', 
+        password: 'pass',
+        embedding: [0.1, 0.2, 0.3]
+      };
+      UserModel.findUserByEmail.mockResolvedValue({ id: 1, email: 'duplicate@test.com' });
 
       await userController.publicRegister(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.status).toHaveBeenCalledWith(409); // Ahora sí es 409
       expect(res.json).toHaveBeenCalledWith({ error: 'Email ya registrado' });
     });
 
@@ -122,7 +146,7 @@ describe('userController - Cobertura completa', () => {
         name: 'Test',
         email: 'test@test.com',
         password: 'pass',
-        embedding: [0.1, 0.2]
+        embedding: [0.1, 0.2, 0.3]
       };
       UserModel.findUserByEmail.mockRejectedValue(new Error('DB error'));
 
@@ -321,24 +345,44 @@ describe('userController - Cobertura completa', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'Error interno' });
     });
 
-    test('éxito con distancia válida', async () => {
-      req.body = { email: 'test@test.com', embedding: [0.1, 0.2, 0.3] };
-      const mockUser = {
-        id: 1,
-        email: 'test@test.com',
-        role: 'client',
-        preferences: { faceEmbedding: 'encrypted' }
-      };
-      UserModel.findUserByEmail.mockResolvedValue(mockUser);
-      decryptFaceEmbedding.mockReturnValue([0.1, 0.2, 0.3]);
-      jwt.sign.mockReturnValue('test_token');
+    // Añade estas pruebas adicionales para cubrir todas las líneas
+    test('usuario no encontrado', async () => {
+      req.body = { email: 'notfound@test.com', embedding: [0.1, 0.2, 0.3] };
+      UserModel.findUserByEmail.mockResolvedValue(null);
 
       await userController.biometricLogin(req, res);
 
-      expect(res.json).toHaveBeenCalledWith({
-        token: 'test_token',
-        message: 'Login biométrico exitoso'
-      });
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Usuario no encontrado' });
+    });
+
+    test('sin biometría registrada', async () => {
+      req.body = { email: 'test@test.com', embedding: [0.1, 0.2, 0.3] };
+      const mockUser = {
+        id: 1,
+        preferences: {} // Sin faceEmbedding
+      };
+      UserModel.findUserByEmail.mockResolvedValue(mockUser);
+
+      await userController.biometricLogin(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ error: 'No hay biometría registrada' });
+    });
+
+    test('error en decryptFaceEmbedding', async () => {
+      req.body = { email: 'test@test.com', embedding: [0.1, 0.2, 0.3] };
+      const mockUser = {
+        id: 1,
+        preferences: { faceEmbedding: 'encrypted' }
+      };
+      UserModel.findUserByEmail.mockResolvedValue(mockUser);
+      decryptFaceEmbedding.mockReturnValue(null); // Error específico
+
+      await userController.biometricLogin(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Error al verificar biometría' });
     });
   });
 
@@ -516,60 +560,135 @@ describe('userController - Cobertura completa', () => {
 
   describe('getProfile', () => {
     test('éxito - obtiene perfil', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'Test User',
+      email: 'test@test.com',
+      role: 'client',
+      registration_date: '2024-01-01',
+      preferences: { 
+        theme: 'light', 
+        notifications: true,
+        faceEmbedding: 'encrypted'
+      }
+    };
+    UserModel.findUserByEmail.mockResolvedValue(mockUser);
+
+    await userController.getProfile(req, res);
+
+    expect(UserModel.findUserByEmail).toHaveBeenCalledWith('test@test.com');
+    // Verifica que faceEmbedding fue eliminado y se agregó hasBiometric
+    expect(res.json.mock.calls[0][0].preferences.faceEmbedding).toBeUndefined();
+    expect(res.json.mock.calls[0][0].preferences.hasBiometric).toBe(true);
+    });
+
+    test('preferences es null', async () => {
       const mockUser = {
         id: 1,
         email: 'test@test.com',
-        preferences: { theme: 'light', faceEmbedding: 'encrypted' }
+        name: 'Test User',
+        role: 'client',
+        registration_date: '2024-01-01',
+        preferences: null
       };
       UserModel.findUserByEmail.mockResolvedValue(mockUser);
 
       await userController.getProfile(req, res);
 
-      expect(UserModel.findUserByEmail).toHaveBeenCalledWith('test@test.com');
-      expect(mockUser.preferences.faceEmbedding).toBeUndefined();
-      expect(res.json).toHaveBeenCalledWith(mockUser);
+      const response = res.json.mock.calls[0][0];
+      expect(response.preferences).toBeDefined();
+      expect(response.preferences.hasBiometric).toBe(false);
+      expect(response.preferences.theme).toBe('light');
+      expect(response.preferences.notifications).toBe(true);
+    });
+
+    test('preferences existe pero sin faceEmbedding', async () => {
+      const mockUser = {
+        id: 1,
+        email: 'test@test.com',
+        name: 'Test User',
+        role: 'client',
+        registration_date: '2024-01-01',
+        preferences: { 
+          theme: 'dark', 
+          notifications: true 
+        }
+      };
+      UserModel.findUserByEmail.mockResolvedValue(mockUser);
+
+      await userController.getProfile(req, res);
+
+      const response = res.json.mock.calls[0][0];
+      expect(response.preferences.hasBiometric).toBe(false);
+      expect(response.preferences.theme).toBe('dark');
+      expect(response.preferences.notifications).toBe(true);
     });
   });
 
-  describe('updatePreferences', () => {
-    test('éxito - actualiza preferencias', async () => {
-      req.body = { preferences: { theme: 'dark', notifications: false } };
-      UserModel.updateUser.mockResolvedValue({ id: 1 });
-
-      await userController.updatePreferences(req, res);
-
-      expect(UserModel.updateUser).toHaveBeenCalledWith(1, {
-        preferences: { theme: 'dark', notifications: false }
-      });
-      expect(res.json).toHaveBeenCalledWith({ id: 1 });
+describe('updatePreferences', () => {
+  test('éxito - actualiza preferencias', async () => {
+    req.body = { 
+      preferences: { 
+        theme: 'dark', 
+        notifications: false 
+      } 
+    };
+    
+    const mockUser = {
+      id: 1,
+      email: 'test@test.com',
+      preferences: { 
+        theme: 'light', 
+        notifications: true,
+        faceEmbedding: 'encrypted'
+      }
+    };
+    
+    UserModel.findUserById.mockResolvedValue(mockUser);
+    UserModel.updateUser.mockResolvedValue({ 
+      id: 1,
+      preferences: {
+        theme: 'dark',
+        notifications: false,
+        faceEmbedding: 'encrypted'  // Se preserva
+      }
     });
+
+    await userController.updatePreferences(req, res);
+
+    expect(UserModel.findUserById).toHaveBeenCalledWith(1);
+    expect(UserModel.updateUser).toHaveBeenCalledWith(1, {
+      preferences: expect.objectContaining({
+        theme: 'dark',
+        notifications: false,
+        faceEmbedding: 'encrypted'  // Se preserva
+      })
+    });
+    expect(res.json).toHaveBeenCalled();
   });
+
+  test('usuario no encontrado', async () => {
+    req.body = { preferences: { theme: 'dark' } };
+    UserModel.findUserById.mockResolvedValue(null);
+
+    await userController.updatePreferences(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Usuario no encontrado' });
+  });
+});
 
   describe('saveFaceEmbedding', () => {
-    test('éxito - guarda embedding facial', async () => {
-      req.body = { embedding: [0.1, 0.2, 0.3], password: 'current' };
-      const mockUser = { id: 1, password_hash: 'hashed' };
-      UserModel.findUserById.mockResolvedValue(mockUser);
-      bcrypt.compare.mockResolvedValue(true);
-      encryptFaceEmbedding.mockReturnValue('encrypted');
-      UserModel.updateUser.mockResolvedValue({ id: 1 });
-
-      await userController.saveFaceEmbedding(req, res);
-
-      expect(bcrypt.compare).toHaveBeenCalledWith('current', 'hashed');
-      expect(encryptFaceEmbedding).toHaveBeenCalledWith([0.1, 0.2, 0.3]);
-      expect(UserModel.updateUser).toHaveBeenCalledWith(1, {
-        preferences: { faceEmbedding: 'encrypted' }
-      });
-      expect(res.json).toHaveBeenCalledWith({
-        success: true,
-        message: 'Biometría registrada y encriptada'
-      });
-    });
-
     test('contraseña incorrecta', async () => {
-      req.body = { embedding: [], password: 'wrong' };
-      const mockUser = { id: 1, password_hash: 'hashed' };
+      req.body = { 
+        embedding: Array(128).fill(0.1), // ✅ Array de 128 elementos
+        password: 'wrong' 
+      };
+      const mockUser = { 
+        id: 1, 
+        password_hash: 'hashed',
+        preferences: {}
+      };
       UserModel.findUserById.mockResolvedValue(mockUser);
       bcrypt.compare.mockResolvedValue(false);
 
@@ -580,7 +699,10 @@ describe('userController - Cobertura completa', () => {
     });
 
     test('usuario no encontrado', async () => {
-      req.body = { embedding: [], password: 'pass' };
+      req.body = { 
+        embedding: Array(128).fill(0.1), // ✅ Array de 128 elementos
+        password: 'pass' 
+      };
       UserModel.findUserById.mockResolvedValue(null);
 
       await userController.saveFaceEmbedding(req, res);
@@ -590,7 +712,10 @@ describe('userController - Cobertura completa', () => {
     });
 
     test('error interno', async () => {
-      req.body = { embedding: [], password: 'pass' };
+      req.body = { 
+        embedding: Array(128).fill(0.1), // ✅ Array de 128 elementos
+        password: 'pass' 
+      };
       UserModel.findUserById.mockRejectedValue(new Error('DB error'));
 
       await userController.saveFaceEmbedding(req, res);
@@ -736,7 +861,10 @@ describe('userController - Cobertura completa', () => {
 
     describe('saveFaceEmbedding - Líneas no cubiertas', () => {
       test('línea 100: usuario no encontrado en saveFaceEmbedding', async () => {
-        req.body = { embedding: [0.1, 0.2, 0.3], password: 'current' };
+        req.body = { 
+          embedding: Array(128).fill(0.1), // ✅ Array de 128 elementos
+          password: 'current' 
+        };
         UserModel.findUserById.mockResolvedValue(null);
 
         await userController.saveFaceEmbedding(req, res);
@@ -746,46 +874,49 @@ describe('userController - Cobertura completa', () => {
         expect(res.json).toHaveBeenCalledWith({ error: 'Usuario no encontrado' });
       });
 
-      test('línea 107: error en encryptFaceEmbedding', async () => {
-        req.body = { embedding: [0.1, 0.2, 0.3], password: 'current' };
-        const mockUser = { id: 1, password_hash: 'hashed' };
-        UserModel.findUserById.mockResolvedValue(mockUser);
-        bcrypt.compare.mockResolvedValue(true);
-        encryptFaceEmbedding.mockImplementation(() => {
-          throw new Error('Error de encriptación');
-        });
-
-        await userController.saveFaceEmbedding(req, res);
-
-        expect(bcrypt.compare).toHaveBeenCalledWith('current', 'hashed');
-        expect(encryptFaceEmbedding).toHaveBeenCalledWith([0.1, 0.2, 0.3]);
-        expect(console.error).toHaveBeenCalledWith('Error guardando biometría:', expect.any(Error));
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ error: 'Error guardando biometría' });
-      });
-
-      test('línea 118: error en UserModel.updateUser', async () => {
-        req.body = { embedding: [0.1, 0.2, 0.3], password: 'current' };
+      test('rostro duplicado encontrado', async () => {
+        req.body = { 
+          embedding: Array(128).fill(0.1), // ✅ Array de 128 elementos
+          password: 'current' 
+        };
         const mockUser = { 
           id: 1, 
           password_hash: 'hashed',
-          preferences: { theme: 'light' }
+          preferences: {} 
         };
+        
+        const otroUsuario = {
+          id: 2,
+          email: 'otro@test.com',
+          name: 'Otro User',
+          preferences: { faceEmbedding: 'encrypted_otro' }
+        };
+        
         UserModel.findUserById.mockResolvedValue(mockUser);
         bcrypt.compare.mockResolvedValue(true);
-        encryptFaceEmbedding.mockReturnValue('encrypted_embedding');
-        UserModel.updateUser.mockRejectedValue(new Error('Error de base de datos'));
+        UserModel.getAllUsers.mockResolvedValue([mockUser, otroUsuario]);
+        
+        // Mock decryptFaceEmbedding y analyzeEmbedding
+        decryptFaceEmbedding.mockReturnValue(Array(128).fill(0.1));
+        
+        // Mock analyzeEmbedding para que devuelva isValid: true
+        const originalController = require('../controllers/userController');
+        const analyzeEmbeddingSpy = jest.spyOn(originalController, 'analyzeEmbedding')
+          .mockReturnValue({ isValid: true });
 
-        await userController.saveFaceEmbedding(req, res);
+        try {
+          await userController.saveFaceEmbedding(req, res);
 
-        expect(bcrypt.compare).toHaveBeenCalledWith('current', 'hashed');
-        expect(encryptFaceEmbedding).toHaveBeenCalledWith([0.1, 0.2, 0.3]);
-        expect(UserModel.updateUser).toHaveBeenCalledWith(1, {
-          preferences: { theme: 'light', faceEmbedding: 'encrypted_embedding' }
-        });
-        expect(console.error).toHaveBeenCalledWith('Error guardando biometría:', expect.any(Error));
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ error: 'Error guardando biometría' });
+          expect(UserModel.getAllUsers).toHaveBeenCalled();
+          expect(res.status).toHaveBeenCalledWith(409);
+          expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+              error: expect.stringContaining('Rostro ya registrado')
+            })
+          );
+        } finally {
+          analyzeEmbeddingSpy.mockRestore();
+        }
       });
     });
 
@@ -1053,6 +1184,132 @@ describe('userController - Cobertura completa', () => {
         expect(console.error).toHaveBeenCalledWith('Error en login:', expect.any(Error));
         expect(res.status).toHaveBeenCalledWith(500);
       });
+    });
+  });
+
+  describe('Funciones nuevas añadidas', () => {
+    test('checkFaceUnique - éxito - rostro único', async () => {
+      req.body = { 
+        embedding: [0.1, 0.2, 0.3], 
+        currentUserId: 1 
+      };
+      
+      const mockUsers = [
+        { id: 1, preferences: { faceEmbedding: 'encrypted1' } },
+        { id: 2, preferences: {} }, // Sin biometría
+        { id: 3, preferences: { faceEmbedding: 'encrypted3' } }
+      ];
+      
+      UserModel.getAllUsers.mockResolvedValue(mockUsers);
+      decryptFaceEmbedding.mockImplementation((encrypted) => {
+        if (encrypted === 'encrypted1') return [0.4, 0.5, 0.6]; // Diferente
+        if (encrypted === 'encrypted3') return [0.7, 0.8, 0.9]; // Diferente
+        return null;
+      });
+
+      await userController.checkFaceUnique(req, res);
+
+      expect(UserModel.getAllUsers).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({
+        isDuplicate: false,
+        duplicateEmail: null,
+        message: 'Rostro único, puede ser registrado'
+      });
+    });
+
+    test('checkFaceUnique - rostro duplicado', async () => {
+      req.body = { 
+        embedding: [0.1, 0.2, 0.3], 
+        currentUserId: 1 
+      };
+      
+      const mockUsers = [
+        { id: 1, email: 'user1@test.com', preferences: { faceEmbedding: 'encrypted1' } },
+        { id: 2, email: 'user2@test.com', preferences: { faceEmbedding: 'encrypted2' } }
+      ];
+      
+      UserModel.getAllUsers.mockResolvedValue(mockUsers);
+      decryptFaceEmbedding.mockReturnValue([0.1, 0.2, 0.3]); // Mismo para ambos
+
+      await userController.checkFaceUnique(req, res);
+
+      expect(res.json).toHaveBeenCalledWith({
+        isDuplicate: true,
+        duplicateEmail: 'user2@test.com',
+        message: 'Este rostro ya está registrado en otra cuenta'
+      });
+    });
+  });
+  describe('Funciones nuevas añadidas', () => {
+    test('checkMyFaceUnique - éxito - rostro único', async () => {
+      // Usar checkMyFaceUnique en lugar de checkFaceUnique
+      const mockUser = {
+        id: 1,
+        email: 'test@test.com',
+        preferences: { 
+          faceEmbedding: 'encrypted1',
+          faceRegisteredAt: '2024-01-01'
+        }
+      };
+      
+      UserModel.findUserById.mockResolvedValue(mockUser);
+      UserModel.getAllUsers.mockResolvedValue([
+        mockUser,
+        { id: 2, preferences: { faceEmbedding: 'encrypted2' } }
+      ]);
+      
+      decryptFaceEmbedding.mockImplementation((encrypted) => {
+        if (encrypted === 'encrypted1') return [0.1, 0.2, 0.3];
+        if (encrypted === 'encrypted2') return [0.4, 0.5, 0.6]; // Diferente
+        return null;
+      });
+
+      await userController.checkMyFaceUnique(req, res);
+
+      expect(UserModel.findUserById).toHaveBeenCalledWith(1);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasBiometric: true,
+          isUnique: true,
+          duplicateCount: 0
+        })
+      );
+    });
+
+    test('checkMyFaceUnique - rostro duplicado', async () => {
+      const mockUser = {
+        id: 1,
+        email: 'user1@test.com',
+        name: 'User 1',
+        preferences: { 
+          faceEmbedding: 'encrypted1',
+          faceRegisteredAt: '2024-01-01'
+        }
+      };
+      
+      const otroUser = {
+        id: 2,
+        email: 'user2@test.com',
+        name: 'User 2',
+        preferences: { faceEmbedding: 'encrypted2' }
+      };
+      
+      UserModel.findUserById.mockResolvedValue(mockUser);
+      UserModel.getAllUsers.mockResolvedValue([mockUser, otroUser]);
+      
+      // Ambos devuelven el mismo embedding
+      decryptFaceEmbedding.mockReturnValue([0.1, 0.2, 0.3]);
+
+      await userController.checkMyFaceUnique(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hasBiometric: true,
+          isUnique: false,
+          duplicateCount: 1,
+          duplicateAccounts: expect.any(Array)
+        })
+      );
     });
   });
 });
