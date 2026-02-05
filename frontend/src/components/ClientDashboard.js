@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ProfileSettings from './ProfileSettings';
-import { Button, Card, Form, Modal, Spinner } from 'react-bootstrap';
+import { Button, Card, Form, Modal, Spinner, Alert } from 'react-bootstrap';
 import { initSessionManager } from '../utils/sessionManager';
 
 const ClientDashboard = () => {
@@ -12,6 +12,7 @@ const ClientDashboard = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [password, setPassword] = useState('');
+  const [hasBiometric] = useState(false);
 
   useEffect(() => {
     if (!window.sessionManager || !window.sessionManager.initialized) {
@@ -35,11 +36,26 @@ const ClientDashboard = () => {
 
   const handleUpdatePreferences = async () => {
     try {
-      await axios.put('/profile/preferences', { preferences });
+      // Primero obtenemos el perfil actual para no perder el faceEmbedding
+      const resProfile = await axios.get('/profile');
+      const currentPrefs = resProfile.data.preferences || {};
+      
+      // Mantenemos el faceEmbedding si existe
+      const updatedPreferences = {
+        ...currentPrefs,  // ← Mantiene faceEmbedding si existe
+        theme: preferences.theme,
+        notifications: preferences.notifications
+      };
+      
+      await axios.put('/profile/preferences', { preferences: updatedPreferences });
+      
       // Aplicar tema inmediatamente
       document.documentElement.setAttribute('data-bs-theme', preferences.theme);
       setModalMessage('¡Preferencias guardadas! Tema aplicado.');
       setShowSuccessModal(true);
+      
+      // Actualizar estado local manteniendo faceEmbedding
+      setPreferences(updatedPreferences);
     } catch (err) {
       setModalMessage('No se pudieron guardar las preferencias. Intenta de nuevo.');
       setShowErrorModal(true);
@@ -185,6 +201,62 @@ const ClientDashboard = () => {
               Guardar cambios en perfil
             </Button>
           </Form>
+        </Card.Body>
+      </Card>
+      <Card className="mb-4 shadow-sm border-info">
+        <Card.Header className="bg-info text-white">
+          <h5 className="mb-0">🔐 Estado de Mi Biometría</h5>
+        </Card.Header>
+        <Card.Body>
+          {hasBiometric ? (
+            <div>
+              <Alert variant="success">
+                <Alert.Heading>✅ Rostro Registrado</Alert.Heading>
+                <p>
+                  Tu rostro está registrado y verificado como único en el sistema.
+                  <br />
+                  <small className="text-muted">
+                    No puede ser usado en otras cuentas.
+                  </small>
+                </p>
+              </Alert>
+              
+              <Button 
+                variant="outline-info" 
+                className="me-2"
+                onClick={async () => {
+                  try {
+                    const res = await axios.get('/profile/face-unique');
+                    if (res.data.isUnique) {
+                      setModalMessage('✅ Confirmado: Tu rostro es único en el sistema.');
+                    } else {
+                      setModalMessage(
+                        `⚠️ ALERTA: Tu rostro está registrado en ${res.data.duplicateCount} cuenta(s) adicional(es).\n\n` +
+                        `Contacta al administrador para resolver este problema.`
+                      );
+                    }
+                    setShowSuccessModal(true);
+                  } catch (err) {
+                    setModalMessage('Error al verificar unicidad: ' + err.message);
+                    setShowErrorModal(true);
+                  }
+                }}
+              >
+                🔍 Verificar unicidad
+              </Button>
+            </div>
+          ) : (
+            <Alert variant="warning">
+              <Alert.Heading>⚠️ Sin Biometría Registrada</Alert.Heading>
+              <p>
+                No tienes rostro registrado. Regístralo para mayor seguridad.
+                <br />
+                <small className="text-muted">
+                  Una vez registrado, será único y no podrá ser usado en otras cuentas.
+                </small>
+              </p>
+            </Alert>
+          )}
         </Card.Body>
       </Card>
       <ProfileSettings />

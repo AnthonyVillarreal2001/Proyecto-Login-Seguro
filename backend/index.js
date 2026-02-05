@@ -44,6 +44,67 @@ app.post('/auth/login', validateLogin, userController.login);
 app.post('/auth/biometric/login', userController.biometricLogin);
 app.post('/auth/logout', authMiddleware(), userController.logout);
 app.post('/auth/verify-face', userController.verifyFaceAfterPassword);
+// En index.js, añadir esta rota
+app.get('/auth/check-face-unique', async (req, res) => {
+  try {
+    const { embedding, currentUserId } = req.query;
+    
+    if (!embedding) {
+      return res.status(400).json({ error: 'Embedding requerido' });
+    }
+    
+    const embeddingArray = JSON.parse(embedding);
+    
+    const allUsers = await UserModel.getAllUsers();
+    let isDuplicate = false;
+    const duplicateUsers = [];
+    
+    for (const user of allUsers) {
+      if (currentUserId && user.id.toString() === currentUserId) continue;
+      
+      if (user.preferences?.faceEmbedding) {
+        try {
+          const existingEmbedding = decryptFaceEmbedding(user.preferences.faceEmbedding);
+          if (existingEmbedding && Array.isArray(existingEmbedding)) {
+            if (existingEmbedding.length === embeddingArray.length) {
+              const distance = euclideanDistance(existingEmbedding, embeddingArray);
+              if (distance < 0.4) {
+                isDuplicate = true;
+                duplicateUsers.push({
+                  email: user.email,
+                  name: user.name,
+                  similarity: (1 - distance).toFixed(4)
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.error(`Error verificando usuario ${user.email}:`, err);
+        }
+      }
+    }
+    
+    res.json({
+      isUnique: !isDuplicate,
+      isDuplicate: isDuplicate,
+      duplicateCount: duplicateUsers.length,
+      duplicateUsers: duplicateUsers
+    });
+    
+  } catch (err) {
+    console.error('Error verificando unicidad facial:', err);
+    res.status(500).json({ error: 'Error verificando unicidad' });
+  }
+});
+// Verificación personal de unicidad
+app.get('/profile/face-unique', authMiddleware(), userController.checkMyFaceUnique);
+
+// Administración de duplicados (solo admin)
+app.get('/admin/face-duplicates', authMiddleware(['admin']), userController.getFaceDuplicates);
+
+// Forzar eliminación de biometría duplicada (solo admin)
+app.delete('/admin/users/:id/force-remove-face', authMiddleware(['admin']), userController.deleteBiometric);
+app.get('/admin/duplicate-faces', authMiddleware(['admin']), userController.checkDuplicateFaces);
 app.get('/users', authMiddleware(['admin']), userController.getAllUsers);
 app.get('/users/search', authMiddleware(['admin']), validateSearch, userController.searchUsers);
 app.put('/users/:id', authMiddleware(['admin']), validateEditUser, userController.editUser);
@@ -54,6 +115,7 @@ app.put('/profile', authMiddleware(), userController.updateProfile);
 app.put('/profile/preferences', authMiddleware(), validatePreferences, userController.updatePreferences);
 app.post('/profile/save-face-embedding', authMiddleware(), userController.saveFaceEmbedding);
 app.delete('/profile/biometric', authMiddleware(), userController.removeFaceEmbedding);
+app.get('/profile/face-unique', authMiddleware(), userController.checkMyFaceUnique);
 app.post('/auth/renew-token', authMiddleware(), userController.renewToken);
 
 createTables().then(() => {
