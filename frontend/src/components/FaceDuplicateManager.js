@@ -27,15 +27,15 @@ const FaceDuplicateManager = () => {
         }
     };
 
-    const handleForceRemoveFace = async (userId) => {
+    const handleDeleteUser = async (userId) => {
         setActionLoading(true);
         try {
-        await axios.delete(`/admin/users/${userId}/force-remove-face`);
-        setModalMessage(`Biometría eliminada forzosamente del usuario ${userId}`);
+        await axios.delete(`/users/${userId}`);
+        setModalMessage(`Usuario ${userId} eliminado con su biometría asociada`);
         setShowSuccessModal(true);
         fetchDuplicates(); // Refrescar lista
         } catch (err) {
-        setModalMessage('Error al eliminar biometría: ' + (err.response?.data?.error || err.message));
+        setModalMessage('Error al eliminar usuario: ' + (err.response?.data?.error || err.message));
         setShowErrorModal(true);
         } finally {
         setActionLoading(false);
@@ -117,7 +117,7 @@ const FaceDuplicateManager = () => {
                                 }}
                                 disabled={actionLoading}
                                 >
-                                🗑️ Eliminar biometría
+                                🗑️ Eliminar usuario
                                 </Button>
                             </td>
                             </tr>
@@ -168,10 +168,10 @@ const FaceDuplicateManager = () => {
         {/* Modal de confirmación */}
         <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered>
             <Modal.Header closeButton>
-            <Modal.Title>⚠️ Confirmar Eliminación Forzosa</Modal.Title>
+            <Modal.Title>⚠️ Eliminar usuario completo</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-            <p>¿Estás seguro de eliminar la biometría de:</p>
+            <p>¿Estás seguro de eliminar por completo a:</p>
             <div className="alert alert-danger">
                 <strong>{selectedDuplicate?.name}</strong><br />
                 {selectedDuplicate?.email}
@@ -179,9 +179,8 @@ const FaceDuplicateManager = () => {
             <p className="text-danger">
                 <strong>Esta acción:</strong>
                 <ul>
-                <li>Eliminará permanentemente el registro facial</li>
-                <li>El usuario no podrá usar login biométrico</li>
-                <li>Debe registrar un nuevo rostro único</li>
+                <li>Eliminará la cuenta y su biometría asociada</li>
+                <li>El usuario deberá registrarse de nuevo con rostro único</li>
                 <li>No se puede deshacer</li>
                 </ul>
             </p>
@@ -192,13 +191,13 @@ const FaceDuplicateManager = () => {
             </Button>
             <Button 
                 variant="danger" 
-                onClick={() => handleForceRemoveFace(selectedDuplicate?.id)}
+                onClick={() => handleDeleteUser(selectedDuplicate?.id)}
                 disabled={actionLoading}
             >
                 {actionLoading ? (
                 <Spinner animation="border" size="sm" />
                 ) : (
-                'Sí, eliminar biometría'
+                'Sí, eliminar usuario'
                 )}
             </Button>
             </Modal.Footer>

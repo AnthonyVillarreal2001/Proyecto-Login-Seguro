@@ -45,6 +45,7 @@ app.post('/auth/biometric/login', userController.biometricLogin);
 app.post('/auth/logout', authMiddleware(), userController.logout);
 app.post('/auth/verify-face', userController.verifyFaceAfterPassword);
 // En index.js, añadir esta rota
+// Verificación de unicidad facial (GET y POST para compatibilidad)
 app.get('/auth/check-face-unique', async (req, res) => {
   try {
     const { embedding, currentUserId } = req.query;
@@ -68,7 +69,7 @@ app.get('/auth/check-face-unique', async (req, res) => {
           if (existingEmbedding && Array.isArray(existingEmbedding)) {
             if (existingEmbedding.length === embeddingArray.length) {
               const distance = euclideanDistance(existingEmbedding, embeddingArray);
-              if (distance < 0.4) {
+              if (distance < 0.5) {
                 isDuplicate = true;
                 duplicateUsers.push({
                   email: user.email,
@@ -93,6 +94,57 @@ app.get('/auth/check-face-unique', async (req, res) => {
     
   } catch (err) {
     console.error('Error verificando unicidad facial:', err);
+    res.status(500).json({ error: 'Error verificando unicidad' });
+  }
+});
+
+app.post('/auth/check-face-unique', async (req, res) => {
+  try {
+    const { embedding, currentUserId } = req.body;
+    if (!embedding) {
+      return res.status(400).json({ error: 'Embedding requerido' });
+    }
+
+    const embeddingArray = embedding;
+
+    const allUsers = await UserModel.getAllUsers();
+    let isDuplicate = false;
+    const duplicateUsers = [];
+
+    for (const user of allUsers) {
+      if (currentUserId && user.id.toString() === currentUserId.toString()) continue;
+
+      if (user.preferences?.faceEmbedding) {
+        try {
+          const existingEmbedding = decryptFaceEmbedding(user.preferences.faceEmbedding);
+          if (existingEmbedding && Array.isArray(existingEmbedding)) {
+            if (existingEmbedding.length === embeddingArray.length) {
+              const distance = euclideanDistance(existingEmbedding, embeddingArray);
+              if (distance < 0.5) {
+                isDuplicate = true;
+                duplicateUsers.push({
+                  email: user.email,
+                  name: user.name,
+                  similarity: (1 - distance).toFixed(4)
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.error(`Error verificando usuario ${user.email}:`, err);
+        }
+      }
+    }
+
+    res.json({
+      isUnique: !isDuplicate,
+      isDuplicate: isDuplicate,
+      duplicateCount: duplicateUsers.length,
+      duplicateUsers: duplicateUsers
+    });
+
+  } catch (err) {
+    console.error('Error verificando unicidad facial (POST):', err);
     res.status(500).json({ error: 'Error verificando unicidad' });
   }
 });

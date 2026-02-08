@@ -8,9 +8,9 @@
 // - Timeout de inactividad + reset en eventos básicos
 
 class SessionManager {
-  constructor(timeoutMinutes = 5) {
-    this.timeoutMs = timeoutMinutes * 60 * 1000;
-    this.warningMs = this.timeoutMs - 60000; // 1 min antes
+  constructor(timeoutMinutes = 1) {
+    this.timeoutMs = timeoutMinutes * 60 * 1000; // ahora 1 minuto por defecto (pruebas)
+    this.warningMs = Math.max(this.timeoutMs - 15000, 5000); // alerta ~15s antes (mín 5s)
     this.checkMs   = 20000;
 
     this.lastActivity = Date.now();
@@ -19,10 +19,19 @@ class SessionManager {
     this.listeners    = null;
   }
 
-  init() {
-    if (this.initialized) return;
-    this.initialized = true;
+  init(minutes = 1) {
+    // Permitir reconfigurar timeout si ya estaba iniciado
+    this.timeoutMs = minutes * 60 * 1000;
+    this.warningMs = Math.max(this.timeoutMs - 15000, 5000);
 
+    if (this.initialized) {
+      this.lastActivity = Date.now();
+      this.resetInactivityTimers();
+      console.info('[SessionManager] Reconfigurado - timeout:', this.timeoutMs / 1000, 's');
+      return;
+    }
+
+    this.initialized = true;
     this.lastActivity = Date.now();
     this.setupBasicListeners();
     this.startTokenCheck();
@@ -84,8 +93,15 @@ class SessionManager {
   }
 
   warnInactivity() {
-    // En vez de modal DOM → alert simple (menos sinks)
-    alert('¡Advertencia! Sesión inactiva. Se cerrará pronto.\nMueve el mouse o presiona una tecla para continuar.');
+    // Usamos confirm para requerir acción explícita y controlar la renovación de token
+    window.__ALLOW_TOKEN_RENEW = false;
+    const proceed = window.confirm('¡Advertencia! Sesión inactiva. Se cerrará pronto.\nPresiona "Continuar" para mantener la sesión.');
+    if (proceed) {
+      window.__ALLOW_TOKEN_RENEW = true;
+      this.recordActivity();
+    } else {
+      this.logout('Inactividad confirmada');
+    }
     console.warn('[Session] Advertencia de inactividad mostrada');
   }
 
@@ -115,14 +131,16 @@ class SessionManager {
 // Singleton
 let instance = null;
 
-export function initSessionManager(minutes = 5) {
+export function initSessionManager(minutes = 1) {
   if (!localStorage.getItem('token')) {
     console.warn('[Session] No token → no inicializar');
     return null;
   }
   if (!instance) {
     instance = new SessionManager(minutes);
-    instance.init();
+    instance.init(minutes);
+  } else {
+    instance.init(minutes); // reconfigura si ya existe
   }
   return instance;
 }
