@@ -7,7 +7,6 @@ import FaceDuplicateManager from './FaceDuplicateManager';
 
 const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
-    const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'client' });
     const [editingUser, setEditingUser] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
@@ -77,27 +76,6 @@ const AdminDashboard = () => {
         }
         };
 
-    const handleRegister = async (e) => {
-        e.preventDefault();
-        if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim()) {
-        setModalMessage('¡Completa todos los campos, por favor! No queremos usuarios fantasma 👻');
-        setShowErrorModal(true);
-        return;
-        }
-
-        try {
-        await axios.post('/auth/register', newUser);
-        setNewUser({ name: '', email: '', password: '', role: 'client' });
-        fetchUsers();
-        setModalMessage('¡Nuevo usuario creado con éxito! Bienvenido al equipo. 🎉');
-        setShowSuccessModal(true);
-        } catch (err) {
-        const msg = err.response?.data?.error || 'Error al registrar. ¿Email ya existe?';
-        setModalMessage(msg);
-        setShowErrorModal(true);
-        }
-    };
-
     const startEdit = (user) => {
         setEditingUser({ ...user, password: '' }); // password vacío para no mostrar el hash
     };
@@ -130,20 +108,6 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleDeleteBiometric = async (id) => {
-        if (!window.confirm('¿Eliminar la biometría de este usuario? Perderá acceso facial. ¿Seguro?')) return;
-
-        try {
-        await axios.delete(`/users/${id}/biometric`);
-        fetchUsers();
-        setModalMessage('Biometría facial eliminada con éxito.');
-        setShowSuccessModal(true);
-        } catch (err) {
-        setModalMessage('No se pudo eliminar la biometría. Intenta más tarde.');
-        setShowErrorModal(true);
-        }
-    };
-
     const handleLogout = () => {
         localStorage.removeItem('token');
         window.location.href = '/login';
@@ -160,60 +124,27 @@ const AdminDashboard = () => {
 
         {loading && <div className="text-center my-5"><Spinner animation="border" /></div>}
 
-        {/* Registro de nuevo usuario */}
+        {/* Registro de nuevo usuario (solo invitación, el usuario se autocompleta con biometría) */}
         <Card className="mb-4 shadow-sm">
             <Card.Header className="bg-primary text-white">
             <h5 className="mb-0">Registrar Nuevo Usuario</h5>
             </Card.Header>
             <Card.Body>
-            <Form onSubmit={handleRegister}>
-                <Form.Group className="mb-3">
-                <Form.Label>Nombre completo</Form.Label>
-                <Form.Control
-                    value={newUser.name}
-                    onChange={e => setNewUser({ ...newUser, name: e.target.value })}
-                    placeholder="Ej: Juan Pérez"
-                    required
-                />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                <Form.Label>Correo electrónico</Form.Label>
-                <Form.Control
-                    type="email"
-                    value={newUser.email}
-                    onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-                    placeholder="correo@ejemplo.com"
-                    required
-                />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                <Form.Label>Contraseña</Form.Label>
-                <Form.Control
-                    type="password"
-                    value={newUser.password}
-                    onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                    placeholder="Mínimo 8 caracteres"
-                    required
-                />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                <Form.Label>Rol</Form.Label>
-                <Form.Select
-                    value={newUser.role}
-                    onChange={e => setNewUser({ ...newUser, role: e.target.value })}
-                >
-                    <option value="client">Cliente</option>
-                    <option value="admin">Administrador</option>
-                </Form.Select>
-                </Form.Group>
-
-                <Button type="submit" variant="success">
-                Crear usuario
-                </Button>
-            </Form>
+            <p>
+                El alta requiere que la persona capture su rostro. Comparte el enlace de registro
+                y pide que complete su propio onboarding biométrico.
+            </p>
+            <div className="d-flex flex-wrap gap-2">
+                <Button variant="success" onClick={() => window.open('/register', '_blank')}>Abrir formulario público</Button>
+                <Button variant="outline-secondary" onClick={() => {
+                    navigator.clipboard.writeText(window.location.origin + '/register');
+                    setModalMessage('Enlace copiado al portapapeles');
+                    setShowSuccessModal(true);
+                }}>Copiar enlace</Button>
+            </div>
+            <p className="mt-3 text-muted small mb-0">
+                Nota: los usuarios se crean automáticamente al completar registro facial único.
+            </p>
             </Card.Body>
         </Card>
 
@@ -266,15 +197,6 @@ const AdminDashboard = () => {
                         >
                         Eliminar
                         </Button>
-                        {user.preferences?.faceEmbedding && (
-                        <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            onClick={() => handleDeleteBiometric(user.id)}
-                        >
-                            Quitar biometría
-                        </Button>
-                        )}
                     </div>
                     </ListGroup.Item>
                 ))

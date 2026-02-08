@@ -171,25 +171,24 @@ const ProfileSettings = () => {
 
       const embedding = Array.from(detection.descriptor);
       
-      // Verificar unicidad solo si es registro nuevo
-      if (actionType === 'register') {
-        try {
-          const currentUserId = JSON.parse(atob(localStorage.getItem('token').split('.')[1])).id;
-          const checkRes = await axios.post('/auth/check-face-unique', { 
-            embedding, 
-            currentUserId 
-          });
-          
-          if (checkRes.data.isDuplicate) {
-            const duplicateAccounts = checkRes.data.duplicateUsers || [];
-            throw new Error(
-              `Este rostro ya está registrado en ${duplicateAccounts.length} cuenta(s). ` +
-              `Cada persona debe tener una cuenta única.`
-            );
-          }
-        } catch (checkErr) {
-          console.log('API de verificación no disponible:', checkErr.message);
+      // Verificar unicidad siempre (registro o actualización) para el usuario logueado
+      try {
+        const token = localStorage.getItem('token');
+        const currentUserId = token ? JSON.parse(atob(token.split('.')[1])).id : null;
+        const checkRes = await axios.post('/auth/check-face-unique', { 
+          embedding, 
+          currentUserId 
+        });
+        
+        if (checkRes.data.isDuplicate) {
+          const duplicateAccounts = checkRes.data.duplicateUsers || [];
+          throw new Error(
+            `Este rostro ya está registrado en ${duplicateAccounts.length} cuenta(s). ` +
+            `Cada persona debe tener una cuenta única.`
+          );
         }
+      } catch (checkErr) {
+        console.log('API de verificación no disponible:', checkErr.message);
       }
 
       await axios.post('/profile/save-face-embedding', { 
