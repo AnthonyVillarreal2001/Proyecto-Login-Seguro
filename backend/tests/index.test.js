@@ -7,6 +7,11 @@ jest.mock('../models/userModel', () => ({
   findUserByEmail: jest.fn()
 }));
 
+jest.mock('../utils/encryption', () => ({
+  encryptFaceEmbedding: jest.fn(() => 'encrypted_embedding'),
+  decryptFaceEmbedding: jest.fn()
+}));
+
 jest.mock('bcrypt', () => ({
   compare: jest.fn()
 }));
@@ -119,23 +124,21 @@ describe('API Integración', () => {
         id: 1,
         preferences: { theme: 'light', notifications: true }
       };
-      
+
       UserModel.findUserByEmail.mockResolvedValue(null);
+      UserModel.getAllUsers = jest.fn().mockResolvedValue([]);
       UserModel.createUser = jest.fn().mockResolvedValue(mockUser);
       UserModel.updateUser = jest.fn().mockResolvedValue({ id: 1 });
-      
-      // Mock de encriptación
-      jest.mock('../utils/encryption', () => ({
-        encryptFaceEmbedding: jest.fn().mockReturnValue('encrypted_embedding')
-      }));
-      
+
+      const validEmbedding = Array.from({ length: 128 }, (_, i) => 0.15 + ((i % 5) * 0.02));
+
       const response = await request(app)
         .post('/auth/public-register')
         .send({
           name: 'New User',
           email: 'new@test.com',
           password: 'password123',
-          embedding: [0.1, 0.2, 0.3]
+          embedding: validEmbedding
         });
       
       expect(response.status).toBe(201);

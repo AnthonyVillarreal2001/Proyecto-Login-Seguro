@@ -306,7 +306,7 @@ const Login = () => {
           </p>
 
           <Form>
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="loginEmail">
               <Form.Label>Correo electrónico *</Form.Label>
               <Form.Control
                 type="email"
@@ -318,7 +318,7 @@ const Login = () => {
               />
             </Form.Group>
 
-            <Form.Group className="mb-4">
+            <Form.Group className="mb-4" controlId="loginPassword">
               <Form.Label>Contraseña *</Form.Label>
               <Form.Control
                 type="password"
