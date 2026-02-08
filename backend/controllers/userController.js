@@ -44,7 +44,7 @@ const userController = {
       const allUsers = await UserModel.getAllUsers();
       let duplicateFound = false;
       let duplicateEmail = '';
-      const DUPLICATE_THRESHOLD = 0.4;
+      const DUPLICATE_THRESHOLD = 0.5; // Bloquea similitud > 50%
 
       for (const user of allUsers) {
         if (user.preferences?.faceEmbedding) {
@@ -210,7 +210,7 @@ const userController = {
 
       // Verificar si el rostro coincide con el usuario actual
       const distance = euclideanDistance(savedEmbedding, embedding);
-      
+
       if (distance < 0.6) {
         const token = jwt.sign(
           { id: user.id, role: user.role, email: user.email }, 
@@ -354,7 +354,7 @@ const userController = {
       const allUsers = await UserModel.getAllUsers();
       let duplicateFound = false;
       let duplicateDetails = null;
-      const SIMILARITY_THRESHOLD = 0.4; // Más estricto que antes (0.5)
+      const SIMILARITY_THRESHOLD = 0.5; // Bloquea similitud >50%
 
       for (const otherUser of allUsers) {
         if (otherUser.id === user.id) continue;
@@ -692,7 +692,7 @@ const userController = {
                 },
                 similarity: (1 - distance).toFixed(4),
                 distance: distance.toFixed(4),
-                isDuplicate: distance < 0.4 // Muy similares
+                isDuplicate: distance < 0.5 // Muy similares
               });
               
               processedPairs.add(pairKey);

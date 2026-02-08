@@ -6,16 +6,16 @@ axios.defaults.baseURL = 'http://localhost:5000';
 axios.interceptors.request.use(async config => {
   const token = localStorage.getItem('token');
   if (token) {
-    // Intentar renovar si es necesario
+    // Intentar renovar solo si está permitido tras continuar
     const newToken = await renewTokenIfNeeded();
-    if (newToken) {
-      config.headers.Authorization = `Bearer ${newToken}`;
-    } else {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    config.headers.Authorization = `Bearer ${newToken || token}`;
   }
   return config;
 });
+
+const renewState = { renewing: false, lastRenew: 0 };
+const RENEW_COOLDOWN_MS = 60 * 1000; // no renovar más de 1 vez por minuto
+const canRenew = () => window.__ALLOW_TOKEN_RENEW !== false;
 
 // Función para renovar token automáticamente
 export const renewTokenIfNeeded = async () => {
@@ -23,29 +23,41 @@ export const renewTokenIfNeeded = async () => {
   if (!token) return null;
   
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = (() => {
+      try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+    })();
+    if (!payload?.exp) return token; // si no hay exp, no renovar
     const expiresAt = payload.exp * 1000;
     const timeLeft = expiresAt - Date.now();
     
-    // Renovar si queda menos de 2 minutos
-    if (timeLeft < 2 * 60 * 1000) {
-      console.log('Token por expirar, renovando...');
+      // Renovar si queda menos de 45s, respetando cooldown y evitando reentradas
+      if (timeLeft < 45 * 1000 && canRenew()) {
+        const now = Date.now();
+        if (renewState.renewing) return token; // evita loop por llamadas simultáneas
+        if (now - renewState.lastRenew < RENEW_COOLDOWN_MS) return token; // cooldown
+
+        renewState.renewing = true;
+        renewState.lastRenew = now;
+        console.log('Token por expirar, renovando...');
       
-      // Hacer una petición al backend para renovar
-      const response = await axios.post('/auth/renew-token', {}, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+        const response = await axios.post('/auth/renew-token', {}, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      
+        renewState.renewing = false;
+
+        if (response.data.token) {
+          localStorage.setItem('token', response.data.token);
+          return response.data.token;
         }
-      });
-      
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        return response.data.token;
+        // Si backend no devuelve token, forzar logout para evitar loops 401
+        logout();
       }
-    }
-    return token;
+      return token;
   } catch (err) {
     console.error('Error renovando token:', err);
+    renewState.renewing = false;
+    if (err.response?.status === 401) logout();
     return null;
   }
 };  
