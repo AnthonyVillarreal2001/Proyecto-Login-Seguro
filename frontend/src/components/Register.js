@@ -255,7 +255,7 @@ const Register = () => {
         </Card.Header>
         <Card.Body>
           <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="registerName">
               <Form.Label>Nombre completo *</Form.Label>
               <Form.Control
                 name="name"
@@ -266,7 +266,7 @@ const Register = () => {
               />
             </Form.Group>
 
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="registerEmail">
               <Form.Label>Correo electrónico *</Form.Label>
               <Form.Control
                 type="email"
@@ -278,7 +278,7 @@ const Register = () => {
               />
             </Form.Group>
 
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="registerPassword">
               <Form.Label>Contraseña *</Form.Label>
               <Form.Control
                 type="password"
@@ -293,7 +293,7 @@ const Register = () => {
               </Form.Text>
             </Form.Group>
 
-            <Form.Group className="mb-4">
+            <Form.Group className="mb-4" controlId="registerConfirmPassword">
               <Form.Label>Confirmar contraseña *</Form.Label>
               <Form.Control
                 type="password"
