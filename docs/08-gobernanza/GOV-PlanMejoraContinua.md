@@ -39,25 +39,25 @@
 ## 3. MEJORAS PRIORIZADAS
 
 ### Prioridad 1 (Semana 1-2):
-| Mejora | Responsable | Métrica | Fecha |
-|--------|-------------|---------|-------|
-| Mover claves a .env | Carlos | 100% claves en variables | 10/01/2026 |
-| Alertas WhatsApp | Anthony | Alertas funcionando | 12/01/2026 |
-| Logging frontend | Juan | Sentry configurado | 15/01/2026 |
+| Mejora              | Responsable | Métrica                  | Fecha      |
+| ------------------- | ----------- | ------------------------ | ---------- |
+| Mover claves a .env | Carlos      | 100% claves en variables | 10/01/2026 |
+| Alertas WhatsApp    | Anthony     | Alertas funcionando      | 12/01/2026 |
+| Logging frontend    | Juan        | Sentry configurado       | 15/01/2026 |
 
 ### Prioridad 2 (Semana 3-4):
-| Mejora | Responsable | Métrica | Fecha |
-|--------|-------------|---------|-------|
-| Pentesting externo | Anthony | Reporte completo | 22/01/2026 |
-| Capacitación OWASP | Carlos | 100% equipo capacitado | 24/01/2026 |
-| Dashboard métricas | Juan | Dashboard accesible | 26/01/2026 |
+| Mejora             | Responsable | Métrica                | Fecha      |
+| ------------------ | ----------- | ---------------------- | ---------- |
+| Pentesting externo | Anthony     | Reporte completo       | 22/01/2026 |
+| Capacitación OWASP | Carlos      | 100% equipo capacitado | 24/01/2026 |
+| Dashboard métricas | Juan        | Dashboard accesible    | 26/01/2026 |
 
 ### Prioridad 3 (Mes 2):
-| Mejora | Responsable | Métrica | Fecha |
-|--------|-------------|---------|-------|
-| Liveness detection | Juan | POC funcionando | 02/02/2026 |
-| Auditoría código externa | Carlos | Reporte recibido | 03/02/2026 |
-| WAF configurado | Anthony | Reglas implementadas | 05/02/2026 |
+| Mejora                   | Responsable | Métrica              | Fecha      |
+| ------------------------ | ----------- | -------------------- | ---------- |
+| Liveness detection       | Juan        | POC funcionando      | 02/02/2026 |
+| Auditoría código externa | Carlos      | Reporte recibido     | 03/02/2026 |
+| WAF configurado          | Anthony     | Reglas implementadas | 05/02/2026 |
 
 ## 4. MÉTRICAS DE MEJORA
 
@@ -91,12 +91,12 @@ Responsable: Juan (mantenimiento)
 
 ### Plan de capacitación:
 
-| Tema | Instructor | Fecha | Duración | Asistentes |
-|------|-----------|-------|----------|-----------|
-| OWASP Top 10 2026 | Anthony | 13/01/2026 | 4 horas | Todos |
-| Secure Node.js | Carlos | 20/01/2026 | 3 horas | Carlos, Anthony |
-| React Security | Juan | 27/01/2026 | 3 horas | Juan, Anthony |
-| GDPR para devs | Externo | 03/02/2026 | 2 horas | Todos |
+| Tema              | Instructor | Fecha      | Duración | Asistentes      |
+| ----------------- | ---------- | ---------- | -------- | --------------- |
+| OWASP Top 10 2026 | Anthony    | 13/01/2026 | 4 horas  | Todos           |
+| Secure Node.js    | Carlos     | 20/01/2026 | 3 horas  | Carlos, Anthony |
+| React Security    | Juan       | 27/01/2026 | 3 horas  | Juan, Anthony   |
+| GDPR para devs    | Externo    | 03/02/2026 | 2 horas  | Todos           |
 
 ### Presupuesto capacitación:
 - **Total anual:** $1,000
@@ -137,12 +137,12 @@ markdown
 
 ### Programa de reconocimiento:
 
-| Logro | Reconocimiento | Responsable |
-|-------|----------------|-------------|
-| 0 vulnerabilidades críticas por mes | Cena equipo | Carlos |
-| Mejora métrica >20% | Certificado + $50 | Juan |
-| Pentesting exitoso | Publicación blog + $100 | Anthony |
-| BSIMM nivel alcanzado | Celebración equipo + bonificación | Todos |
+| Logro                               | Reconocimiento                    | Responsable |
+| ----------------------------------- | --------------------------------- | ----------- |
+| 0 vulnerabilidades críticas por mes | Cena equipo                       | Carlos      |
+| Mejora métrica >20%                 | Certificado + $50                 | Juan        |
+| Pentesting exitoso                  | Publicación blog + $100           | Anthony     |
+| BSIMM nivel alcanzado               | Celebración equipo + bonificación | Todos       |
 
 ### Presupuesto reconocimientos:
 - **Anual:** $500

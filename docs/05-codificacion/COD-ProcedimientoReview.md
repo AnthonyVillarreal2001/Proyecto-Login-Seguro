@@ -15,11 +15,11 @@ Carlos GitHub Juan Checklist Anthony Main
 ## 2. ASIGNACIÓN DE REVIEWERS
 
 ### Matriz de responsabilidades:
-| Autor del Código | Reviewer Principal | Reviewer Secundario |
-|------------------|-------------------|---------------------|
-| **Carlos** (Backend) | **Anthony** (Middleware) | **Juan** (Frontend) |
-| **Juan** (Frontend) | **Carlos** (Backend) | **Anthony** (Middleware) |
-| **Anthony** (Middleware) | **Carlos** (Backend) | **Juan** (Frontend) |
+| Autor del Código         | Reviewer Principal       | Reviewer Secundario      |
+| ------------------------ | ------------------------ | ------------------------ |
+| **Carlos** (Backend)     | **Anthony** (Middleware) | **Juan** (Frontend)      |
+| **Juan** (Frontend)      | **Carlos** (Backend)     | **Anthony** (Middleware) |
+| **Anthony** (Middleware) | **Carlos** (Backend)     | **Juan** (Frontend)      |
 
 **Regla:** Nunca reviewear tu propio código.
 
@@ -154,10 +154,10 @@ jwt.sign({...}, process.env.JWT_SECRET, { expiresIn: '5m' });
 ### 8.1 Métricas por desarrollador:
 
 | Desarrollador | PRs Revisados | Promedio Issues | Tiempo Promedio |
-|---------------|---------------|-----------------|-----------------|
-| Carlos | 12 | 1.5 | 20 min |
-| Juan | 10 | 2.0 | 25 min |
-| Anthony | 15 | 1.2 | 18 min |
+| ------------- | ------------- | --------------- | --------------- |
+| Carlos        | 12            | 1.5             | 20 min          |
+| Juan          | 10            | 2.0             | 25 min          |
+| Anthony       | 15            | 1.2             | 18 min          |
 
 ### 8.2 Métricas de calidad:
 

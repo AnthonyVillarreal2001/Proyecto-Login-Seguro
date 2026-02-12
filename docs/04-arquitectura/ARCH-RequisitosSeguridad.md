@@ -7,92 +7,92 @@
 
 ### 1.1 Autenticación (REQ-AUTH)
 
-| ID | Requisito | Componente | Responsable | Estado |
-|----|-----------|------------|-------------|--------|
-| **AUTH-001** | Login con contraseña (fallback) | userController.js | Carlos | ✅ Implementado |
-| **AUTH-002** | Login biométrico facial | Login.js + userController.js | Juan | ✅ Implementado |
-| **AUTH-003** | Rate limiting (10 intentos/5min) | index.js | Anthony | ✅ Implementado |
-| **AUTH-004** | Timeout sesión 5 minutos inactividad | sessionManager.js | Juan | ✅ Implementado |
-| **AUTH-005** | Logout con blacklisting de tokens | blacklist.js | Carlos | ✅ Implementado |
-| **AUTH-006** | Renovación automática de tokens | auth.js | Anthony | ✅ Implementado |
+| ID           | Requisito                            | Componente                   | Responsable | Estado         |
+| ------------ | ------------------------------------ | ---------------------------- | ----------- | -------------- |
+| **AUTH-001** | Login con contraseña (fallback)      | userController.js            | Carlos      | ✅ Implementado |
+| **AUTH-002** | Login biométrico facial              | Login.js + userController.js | Juan        | ✅ Implementado |
+| **AUTH-003** | Rate limiting (10 intentos/5min)     | index.js                     | Anthony     | ✅ Implementado |
+| **AUTH-004** | Timeout sesión 5 minutos inactividad | sessionManager.js            | Juan        | ✅ Implementado |
+| **AUTH-005** | Logout con blacklisting de tokens    | blacklist.js                 | Carlos      | ✅ Implementado |
+| **AUTH-006** | Renovación automática de tokens      | auth.js                      | Anthony     | ✅ Implementado |
 
 ### 1.2 Autorización (REQ-AUTHZ)
 
-| ID | Requisito | Componente | Responsable | Estado |
-|----|-----------|------------|-------------|--------|
-| **AUTHZ-001** | Roles: admin y client | PostgreSQL ENUM | Carlos | ✅ Implementado |
-| **AUTHZ-002** | Middleware validación roles | authMiddleware.js | Anthony | ✅ Implementado |
-| **AUTHZ-003** | Admin: CRUD usuarios | AdminDashboard.js | Juan | ✅ Implementado |
-| **AUTHZ-004** | Client: Solo su perfil | ClientDashboard.js | Juan | ✅ Implementado |
-| **AUTHZ-005** | Validación tokens JWT | authMiddleware.js | Anthony | ✅ Implementado |
+| ID            | Requisito                   | Componente         | Responsable | Estado         |
+| ------------- | --------------------------- | ------------------ | ----------- | -------------- |
+| **AUTHZ-001** | Roles: admin y client       | PostgreSQL ENUM    | Carlos      | ✅ Implementado |
+| **AUTHZ-002** | Middleware validación roles | authMiddleware.js  | Anthony     | ✅ Implementado |
+| **AUTHZ-003** | Admin: CRUD usuarios        | AdminDashboard.js  | Juan        | ✅ Implementado |
+| **AUTHZ-004** | Client: Solo su perfil      | ClientDashboard.js | Juan        | ✅ Implementado |
+| **AUTHZ-005** | Validación tokens JWT       | authMiddleware.js  | Anthony     | ✅ Implementado |
 
 ### 1.3 Protección de Datos (REQ-DATA)
 
-| ID | Requisito | Componente | Responsable | Estado |
-|----|-----------|------------|-------------|--------|
-| **DATA-001** | Embeddings encriptados AES-256 | encryption.js | Carlos | ✅ Implementado |
-| **DATA-002** | Contraseñas hasheadas bcrypt | userController.js | Carlos | ✅ Implementado |
-| **DATA-003** | Sanitización de inputs | validateMiddleware.js | Anthony | ✅ Implementado |
-| **DATA-004** | No logging de datos sensibles | userController.js | Carlos | ✅ Implementado |
-| **DATA-005** | Tokens JWT firmados | userController.js | Carlos | ⚠️ Mejorar secreto |
+| ID           | Requisito                      | Componente            | Responsable | Estado            |
+| ------------ | ------------------------------ | --------------------- | ----------- | ----------------- |
+| **DATA-001** | Embeddings encriptados AES-256 | encryption.js         | Carlos      | ✅ Implementado    |
+| **DATA-002** | Contraseñas hasheadas bcrypt   | userController.js     | Carlos      | ✅ Implementado    |
+| **DATA-003** | Sanitización de inputs         | validateMiddleware.js | Anthony     | ✅ Implementado    |
+| **DATA-004** | No logging de datos sensibles  | userController.js     | Carlos      | ✅ Implementado    |
+| **DATA-005** | Tokens JWT firmados            | userController.js     | Carlos      | ⚠️ Mejorar secreto |
 
 ### 1.4 Gestión de Sesiones (REQ-SESS)
 
-| ID | Requisito | Componente | Responsable | Estado |
-|----|-----------|------------|-------------|--------|
-| **SESS-001** | Single session por usuario | auth.js | Anthony | ✅ Implementado |
-| **SESS-002** | Detección inactividad | sessionManager.js | Juan | ✅ Implementado |
-| **SESS-003** | Cierre multi-ventana | auth.js | Anthony | ✅ Implementado |
-| **SESS-004** | Notificación timeout | SessionStatus.js | Juan | ✅ Implementado |
+| ID           | Requisito                  | Componente        | Responsable | Estado         |
+| ------------ | -------------------------- | ----------------- | ----------- | -------------- |
+| **SESS-001** | Single session por usuario | auth.js           | Anthony     | ✅ Implementado |
+| **SESS-002** | Detección inactividad      | sessionManager.js | Juan        | ✅ Implementado |
+| **SESS-003** | Cierre multi-ventana       | auth.js           | Anthony     | ✅ Implementado |
+| **SESS-004** | Notificación timeout       | SessionStatus.js  | Juan        | ✅ Implementado |
 
 ## 2. REQUISITOS NO FUNCIONALES DE SEGURIDAD
 
 ### 2.1 Rendimiento (REQ-PERF)
 
-| ID | Requisito | Métrica Actual | Objetivo | Responsable |
-|----|-----------|----------------|----------|-------------|
-| **PERF-001** | Tiempo login biométrico | ~2 segundos | < 3 segundos | Juan |
-| **PERF-002** | Tiempo respuesta API | ~200ms | < 500ms | Carlos |
-| **PERF-003** | Uso memoria modelos IA | ~35MB | < 50MB | Juan |
-| **PERF-004** | Carga inicial frontend | ~5 segundos | < 8 segundos | Juan |
+| ID           | Requisito               | Métrica Actual | Objetivo     | Responsable |
+| ------------ | ----------------------- | -------------- | ------------ | ----------- |
+| **PERF-001** | Tiempo login biométrico | ~2 segundos    | < 3 segundos | Juan        |
+| **PERF-002** | Tiempo respuesta API    | ~200ms         | < 500ms      | Carlos      |
+| **PERF-003** | Uso memoria modelos IA  | ~35MB          | < 50MB       | Juan        |
+| **PERF-004** | Carga inicial frontend  | ~5 segundos    | < 8 segundos | Juan        |
 
 ### 2.2 Disponibilidad (REQ-AVAIL)
 
-| ID | Requisito | Implementación | Responsable |
-|----|-----------|----------------|-------------|
-| **AVAIL-001** | Rate limiting DoS protection | express-rate-limit | Anthony |
-| **AVAIL-002** | Pool conexiones DB | pg.Pool con límite | Carlos |
-| **AVAIL-003** | Timeout requests | axios 10 segundos | Juan |
-| **AVAIL-004** | Fallback a password | Login tradicional | Carlos |
+| ID            | Requisito                    | Implementación     | Responsable |
+| ------------- | ---------------------------- | ------------------ | ----------- |
+| **AVAIL-001** | Rate limiting DoS protection | express-rate-limit | Anthony     |
+| **AVAIL-002** | Pool conexiones DB           | pg.Pool con límite | Carlos      |
+| **AVAIL-003** | Timeout requests             | axios 10 segundos  | Juan        |
+| **AVAIL-004** | Fallback a password          | Login tradicional  | Carlos      |
 
 ### 2.3 Auditabilidad (REQ-AUDIT)
 
-| ID | Requisito | Implementación | Responsable |
-|----|-----------|----------------|-------------|
-| **AUDIT-001** | Logging eventos seguridad | Winston logger | Carlos |
-| **AUDIT-002** | Timestamp registros | registration_date DEFAULT NOW() | Carlos |
-| **AUDIT-003** | Track login fallidos | Rate limiting counter | Anthony |
-| **AUDIT-004** | Blacklist tokens usado | blacklist.has() | Carlos |
+| ID            | Requisito                 | Implementación                  | Responsable |
+| ------------- | ------------------------- | ------------------------------- | ----------- |
+| **AUDIT-001** | Logging eventos seguridad | Winston logger                  | Carlos      |
+| **AUDIT-002** | Timestamp registros       | registration_date DEFAULT NOW() | Carlos      |
+| **AUDIT-003** | Track login fallidos      | Rate limiting counter           | Anthony     |
+| **AUDIT-004** | Blacklist tokens usado    | blacklist.has()                 | Carlos      |
 
 ## 3. REQUISITOS DE CUMPLIMIENTO
 
 ### 3.1 Privacidad (GDPR-like)
 
-| ID | Requisito | Implementación | Responsable |
-|----|-----------|----------------|-------------|
-| **PRIV-001** | Derecho al olvido | DELETE user endpoint | Carlos |
-| **PRIV-002** | Eliminar biometría | removeFaceEmbedding() | Juan |
-| **PRIV-003** | Minimización datos | Solo embeddings necesarios | Carlos |
-| **PRIV-004** | Consentimiento biometría | Password required para registro | Juan |
+| ID           | Requisito                | Implementación                  | Responsable |
+| ------------ | ------------------------ | ------------------------------- | ----------- |
+| **PRIV-001** | Derecho al olvido        | DELETE user endpoint            | Carlos      |
+| **PRIV-002** | Eliminar biometría       | removeFaceEmbedding()           | Juan        |
+| **PRIV-003** | Minimización datos       | Solo embeddings necesarios      | Carlos      |
+| **PRIV-004** | Consentimiento biometría | Password required para registro | Juan        |
 
 ### 3.2 Configuración Segura
 
-| ID | Requisito | Estado Actual | Acción Requerida | Responsable |
-|----|-----------|---------------|------------------|-------------|
-| **CONF-001** | Claves en variables entorno | ❌ Hardcodeadas | Mover a .env | Carlos |
-| **CONF-002** | SSL/TLS en producción | ❌ No implementado | Configurar nginx | Anthony |
-| **CONF-003** | CORS restringido | ✅ Solo localhost | Mantener | Juan |
-| **CONF-004** | Headers seguridad | ✅ Helmet.js | Mantener | Anthony |
+| ID           | Requisito                   | Estado Actual     | Acción Requerida | Responsable |
+| ------------ | --------------------------- | ----------------- | ---------------- | ----------- |
+| **CONF-001** | Claves en variables entorno | ❌ Hardcodeadas    | Mover a .env     | Carlos      |
+| **CONF-002** | SSL/TLS en producción       | ❌ No implementado | Configurar nginx | Anthony     |
+| **CONF-003** | CORS restringido            | ✅ Solo localhost  | Mantener         | Juan        |
+| **CONF-004** | Headers seguridad           | ✅ Helmet.js       | Mantener         | Anthony     |
 
 ## 4. MATRIZ DE TRAZABILIDAD
 
@@ -171,12 +171,12 @@ test('login fails with wrong password', async () => {
 
 ### Responsabilidades por Rol:
 
-| Actividad | Carlos | Juan | Anthony |
-|-----------|--------|------|---------|
-| Desarrollo requisitos | Backend | Frontend | Middleware |
-| Pruebas unitarias | Jest tests | React tests | Jest tests |
-| Code review | Revisa Anthony | Revisa Carlos | Revisa Juan |
-| Pentesting básico | API endpoints | Client-side | Middleware |
+| Actividad             | Carlos         | Juan          | Anthony     |
+| --------------------- | -------------- | ------------- | ----------- |
+| Desarrollo requisitos | Backend        | Frontend      | Middleware  |
+| Pruebas unitarias     | Jest tests     | React tests   | Jest tests  |
+| Code review           | Revisa Anthony | Revisa Carlos | Revisa Juan |
+| Pentesting básico     | API endpoints  | Client-side   | Middleware  |
 
 ### Frecuencia de verificación:
 

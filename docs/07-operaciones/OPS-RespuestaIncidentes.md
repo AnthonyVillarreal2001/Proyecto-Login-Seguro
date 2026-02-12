@@ -6,10 +6,10 @@
 ## 1. CONTACTOS DE EMERGENCIA
 
 ### 1.1 Equipo Principal
-| Nombre | Rol | Teléfono | Disponibilidad |
-|--------|-----|----------|----------------|
-| **Carlos Campoverde** | Backend Lead | +593 95 878 9219 | 24/7 para críticos |
-| **Juan Pasquel** | Frontend Lead | +593 99 701 7861 | 8AM-10PM |
+| Nombre                 | Rol                 | Teléfono         | Disponibilidad     |
+| ---------------------- | ------------------- | ---------------- | ------------------ |
+| **Carlos Campoverde**  | Backend Lead        | +593 95 878 9219 | 24/7 para críticos |
+| **Juan Pasquel**       | Frontend Lead       | +593 99 701 7861 | 8AM-10PM           |
 | **Anthony Villarreal** | Security/Middleware | +593 98 387 4232 | 24/7 para críticos |
 
 ### 1.2 Canales de Comunicación
@@ -20,12 +20,12 @@
 ## 2. CLASIFICACIÓN DE INCIDENTES
 
 ### 2.1 Niveles de Severidad
-| Nivel | Criterios | Tiempo Respuesta | Ejemplo |
-|-------|-----------|------------------|---------|
-| **CRÍTICO** | Pérdida datos, sistema caído, acceso no autorizado | 15 minutos | Fuga embeddings faciales |
-| **ALTO** | Vulnerabilidad explotable, performance crítico | 1 hora | Rate limiting bypass |
-| **MEDIO** | Funcionalidad afectada, sin pérdida datos | 4 horas | Login biométrico fallando |
-| **BAJO** | Issues menores, mejoras | 24 horas | Logging incompleto |
+| Nivel       | Criterios                                          | Tiempo Respuesta | Ejemplo                   |
+| ----------- | -------------------------------------------------- | ---------------- | ------------------------- |
+| **CRÍTICO** | Pérdida datos, sistema caído, acceso no autorizado | 15 minutos       | Fuga embeddings faciales  |
+| **ALTO**    | Vulnerabilidad explotable, performance crítico     | 1 hora           | Rate limiting bypass      |
+| **MEDIO**   | Funcionalidad afectada, sin pérdida datos          | 4 horas          | Login biométrico fallando |
+| **BAJO**    | Issues menores, mejoras                            | 24 horas         | Logging incompleto        |
 
 ## 3. PROCEDIMIENTO PASO A PASO
 
@@ -223,11 +223,11 @@ Equipo de Seguridad
 
 ### 9.1 Simulacros programados:
 
-| Fecha | Escenario | Responsable |
-|-------|-----------|-------------|
-| 22/01/2026 | Fuga de embeddings | Carlos |
-| 29/01/2026 | Ataque DDoS | Anthony |
-| 03/02/2026 | Spoofing biométrico | Juan |
+| Fecha      | Escenario           | Responsable |
+| ---------- | ------------------- | ----------- |
+| 22/01/2026 | Fuga de embeddings  | Carlos      |
+| 29/01/2026 | Ataque DDoS         | Anthony     |
+| 03/02/2026 | Spoofing biométrico | Juan        |
 
 ### 9.2 Métricas de respuesta:
 - **Tiempo promedio detección:** [Meta: < 5 min]

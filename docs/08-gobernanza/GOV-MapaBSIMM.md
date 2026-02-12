@@ -21,68 +21,68 @@
 ## 2. ACTIVIDADES BSIMM IMPLEMENTADAS
 
 ### 2.1 Estrategia y Métricas (SM) - 4/12
-| Actividad | Estado | Responsable | Evidencia |
-|-----------|--------|-------------|-----------|
-| SM1.2: Publicar métricas | ✅ | Anthony | `docs/01-estrategia/MET-MetricasKPIs.md` |
-| SM2.1: Identificar políticas | ✅ | Carlos | `docs/01-estrategia/SSP-PoliticaSeguridadSoftware.md` |
-| SM2.3: Usar métricas | ⚠️ | Anthony | Métricas básicas implementadas |
-| SM3.2: Entrenamiento | ❌ | Todos | Pendiente programa formal |
+| Actividad                    | Estado | Responsable | Evidencia                                             |
+| ---------------------------- | ------ | ----------- | ----------------------------------------------------- |
+| SM1.2: Publicar métricas     | ✅      | Anthony     | `docs/01-estrategia/MET-MetricasKPIs.md`              |
+| SM2.1: Identificar políticas | ✅      | Carlos      | `docs/01-estrategia/SSP-PoliticaSeguridadSoftware.md` |
+| SM2.3: Usar métricas         | ⚠️      | Anthony     | Métricas básicas implementadas                        |
+| SM3.2: Entrenamiento         | ❌      | Todos       | Pendiente programa formal                             |
 
 ### 2.2 Gestión de la Configuración (CM) - 3/9
-| Actividad | Estado | Responsable | Evidencia |
-|-----------|--------|-------------|-----------|
-| CM1.3: Proceso gestión configuración | ✅ | Anthony | `docs/02-configuracion/CONF-EntornosSeguros.md` |
-| CM2.4: Gestionar activos | ✅ | Carlos | `docs/02-configuracion/INV-InventarioActivos.md` |
-| CM3.2: Auditoría configuración | ❌ | Carlos | Pendiente scripts automatizados |
+| Actividad                            | Estado | Responsable | Evidencia                                        |
+| ------------------------------------ | ------ | ----------- | ------------------------------------------------ |
+| CM1.3: Proceso gestión configuración | ✅      | Anthony     | `docs/02-configuracion/CONF-EntornosSeguros.md`  |
+| CM2.4: Gestionar activos             | ✅      | Carlos      | `docs/02-configuracion/INV-InventarioActivos.md` |
+| CM3.2: Auditoría configuración       | ❌      | Carlos      | Pendiente scripts automatizados                  |
 
 ### 2.3 Gestión de Vulnerabilidades (VM) - 5/12
-| Actividad | Estado | Responsable | Evidencia |
-|-----------|--------|-------------|-----------|
-| VM1.1: Usar herramientas | ✅ | Anthony | Jest, npm audit implementados |
-| VM1.2: Responder vulnerabilidades | ✅ | Carlos | `docs/03-vulnerabilidades/VULN-ProcesoGestion.md` |
-| VM2.1: Flujo vulnerabilidades | ✅ | Anthony | GitHub Issues con label security |
-| VM2.2: Medir tiempos remediación | ⚠️ | Anthony | Métricas básicas implementadas |
-| VM3.1: Pentesting | ⚠️ | Juan | Pentesting básico realizado |
+| Actividad                         | Estado | Responsable | Evidencia                                         |
+| --------------------------------- | ------ | ----------- | ------------------------------------------------- |
+| VM1.1: Usar herramientas          | ✅      | Anthony     | Jest, npm audit implementados                     |
+| VM1.2: Responder vulnerabilidades | ✅      | Carlos      | `docs/03-vulnerabilidades/VULN-ProcesoGestion.md` |
+| VM2.1: Flujo vulnerabilidades     | ✅      | Anthony     | GitHub Issues con label security                  |
+| VM2.2: Medir tiempos remediación  | ⚠️      | Anthony     | Métricas básicas implementadas                    |
+| VM3.1: Pentesting                 | ⚠️      | Juan        | Pentesting básico realizado                       |
 
 ### 2.4 Arquitectura y Diseño (AA) - 4/9
-| Actividad | Estado | Responsable | Evidencia |
-|-----------|--------|-------------|-----------|
-| AA1.1: Entender atacantes | ✅ | Todos | Discusiones equipo |
-| AA2.1: Modelo amenazas | ✅ | Anthony | `docs/04-arquitectura/ARCH-ModeloAmenazas.md` |
-| AA2.2: Requisitos seguridad | ✅ | Carlos | `docs/04-arquitectura/ARCH-RequisitosSeguridad.md` |
-| AA3.1: Revisión arquitectura | ⚠️ | Carlos | Revisión informal realizada |
+| Actividad                    | Estado | Responsable | Evidencia                                          |
+| ---------------------------- | ------ | ----------- | -------------------------------------------------- |
+| AA1.1: Entender atacantes    | ✅      | Todos       | Discusiones equipo                                 |
+| AA2.1: Modelo amenazas       | ✅      | Anthony     | `docs/04-arquitectura/ARCH-ModeloAmenazas.md`      |
+| AA2.2: Requisitos seguridad  | ✅      | Carlos      | `docs/04-arquitectura/ARCH-RequisitosSeguridad.md` |
+| AA3.1: Revisión arquitectura | ⚠️      | Carlos      | Revisión informal realizada                        |
 
 ### 2.5 Garantía del Código (CA) - 3/9
-| Actividad | Estado | Responsable | Evidencia |
-|-----------|--------|-------------|-----------|
-| CA1.1: Estándares código seguro | ✅ | Anthony | `docs/05-codificacion/COD-EstandaresSeguros.md` |
-| CA2.3: Code reviews | ✅ | Juan | `docs/05-codificacion/COD-ProcedimientoReview.md` |
-| CA3.1: Análisis estático | ⚠️ | Carlos | ESLint básico implementado |
+| Actividad                       | Estado | Responsable | Evidencia                                         |
+| ------------------------------- | ------ | ----------- | ------------------------------------------------- |
+| CA1.1: Estándares código seguro | ✅      | Anthony     | `docs/05-codificacion/COD-EstandaresSeguros.md`   |
+| CA2.3: Code reviews             | ✅      | Juan        | `docs/05-codificacion/COD-ProcedimientoReview.md` |
+| CA3.1: Análisis estático        | ⚠️      | Carlos      | ESLint básico implementado                        |
 
 ### 2.6 Pruebas de Seguridad (ST) - 3/9
-| Actividad | Estado | Responsable | Evidencia |
-|-----------|--------|-------------|-----------|
-| ST1.1: Pruebas seguridad | ✅ | Carlos | `docs/06-pruebas/TEST-PlanPruebas.md` |
-| ST2.2: Pruebas penetración | ⚠️ | Anthony | `docs/06-pruebas/TEST-ResultadosPentest.md` |
-| ST3.1: Pentesting externo | ❌ | Todos | Pendiente contratar externo |
+| Actividad                  | Estado | Responsable | Evidencia                                   |
+| -------------------------- | ------ | ----------- | ------------------------------------------- |
+| ST1.1: Pruebas seguridad   | ✅      | Carlos      | `docs/06-pruebas/TEST-PlanPruebas.md`       |
+| ST2.2: Pruebas penetración | ⚠️      | Anthony     | `docs/06-pruebas/TEST-ResultadosPentest.md` |
+| ST3.1: Pentesting externo  | ❌      | Todos       | Pendiente contratar externo                 |
 
 ### 2.7 Operaciones (OP) - 2/9
-| Actividad | Estado | Responsable | Evidencia |
-|-----------|--------|-------------|-----------|
-| OP1.1: Monitoreo | ⚠️ | Anthony | `docs/07-operaciones/OPS-MonitoreoLogging.md` |
-| OP2.1: Respuesta incidentes | ✅ | Carlos | `docs/07-operaciones/OPS-RespuestaIncidentes.md` |
+| Actividad                   | Estado | Responsable | Evidencia                                        |
+| --------------------------- | ------ | ----------- | ------------------------------------------------ |
+| OP1.1: Monitoreo            | ⚠️      | Anthony     | `docs/07-operaciones/OPS-MonitoreoLogging.md`    |
+| OP2.1: Respuesta incidentes | ✅      | Carlos      | `docs/07-operaciones/OPS-RespuestaIncidentes.md` |
 
 ## 3. MATRIZ DE RESPONSABILIDADES BSIMM
 
-| Dominio BSIMM | Carlos | Juan | Anthony |
-|---------------|--------|------|---------|
-| **SM - Estrategia** | Líder | Participa | Coordina |
-| **CM - Configuración** | Implementa | Sigue | Diseña |
-| **VM - Vulnerabilidades** | Líder | Reporta | Analiza |
-| **AA - Arquitectura** | Diseña | Contribuye | Modela |
-| **CA - Código** | Sigue | Líder | Establece |
-| **ST - Pruebas** | Ejecuta | Testea | Planifica |
-| **OP - Operaciones** | Opera | Monitorea | Responde |
+| Dominio BSIMM             | Carlos     | Juan       | Anthony   |
+| ------------------------- | ---------- | ---------- | --------- |
+| **SM - Estrategia**       | Líder      | Participa  | Coordina  |
+| **CM - Configuración**    | Implementa | Sigue      | Diseña    |
+| **VM - Vulnerabilidades** | Líder      | Reporta    | Analiza   |
+| **AA - Arquitectura**     | Diseña     | Contribuye | Modela    |
+| **CA - Código**           | Sigue      | Líder      | Establece |
+| **ST - Pruebas**          | Ejecuta    | Testea     | Planifica |
+| **OP - Operaciones**      | Opera      | Monitorea  | Responde  |
 
 ## 4. HITO DE IMPLEMENTACIÓN POR SPRINT
 
@@ -172,18 +172,18 @@
 ## 8. RECURSOS NECESARIOS
 
 ### Herramientas requeridas:
-| Herramienta | Costo estimado | Prioridad | Responsable |
-|-------------|----------------|-----------|-------------|
-| OWASP ZAP Pro | $500/año | Alta | Anthony |
-| Sentry (team plan) | $300/año | Media | Juan |
-| SonarQube Cloud | $400/año | Baja | Carlos |
+| Herramienta        | Costo estimado | Prioridad | Responsable |
+| ------------------ | -------------- | --------- | ----------- |
+| OWASP ZAP Pro      | $500/año       | Alta      | Anthony     |
+| Sentry (team plan) | $300/año       | Media     | Juan        |
+| SonarQube Cloud    | $400/año       | Baja      | Carlos      |
 
 ### Capacitación requerida:
-| Curso | Duración | Costo | Participantes |
-|-------|----------|-------|---------------|
-| OWASP Top 10 | 8 horas | $200 | Todos |
-| Secure Coding Node.js | 16 horas | $400 | Carlos |
-| React Security | 12 horas | $300 | Juan |
+| Curso                 | Duración | Costo | Participantes |
+| --------------------- | -------- | ----- | ------------- |
+| OWASP Top 10          | 8 horas  | $200  | Todos         |
+| Secure Coding Node.js | 16 horas | $400  | Carlos        |
+| React Security        | 12 horas | $300  | Juan          |
 
 ## 9. APROBACIONES
 

@@ -6,18 +6,18 @@
 ## 1. TIPOS DE PRUEBAS
 
 ### 1.1 Pruebas Automatizadas
-| Tipo | Frecuencia | Herramienta | Responsable |
-|------|------------|-------------|-------------|
-| Unitarias | Por commit | Jest | Carlos |
-| Integración | Diaria | Jest + Supertest | Anthony |
-| Seguridad API | Semanal | OWASP ZAP CLI | Anthony |
+| Tipo          | Frecuencia | Herramienta      | Responsable |
+| ------------- | ---------- | ---------------- | ----------- |
+| Unitarias     | Por commit | Jest             | Carlos      |
+| Integración   | Diaria     | Jest + Supertest | Anthony     |
+| Seguridad API | Semanal    | OWASP ZAP CLI    | Anthony     |
 
 ### 1.2 Pruebas Manuales
-| Tipo | Frecuencia | Responsable |
-|------|------------|-------------|
-| Pentesting básico | Mensual | Juan |
-| Revisión biometría | Por release | Juan + Carlos |
-| Validación UX seguridad | Por sprint | Juan |
+| Tipo                    | Frecuencia  | Responsable   |
+| ----------------------- | ----------- | ------------- |
+| Pentesting básico       | Mensual     | Juan          |
+| Revisión biometría      | Por release | Juan + Carlos |
+| Validación UX seguridad | Por sprint  | Juan          |
 
 ## 2. CASOS DE PRUEBA CRÍTICOS
 
@@ -178,13 +178,13 @@ zap-cli active-scan http://localhost:5000
 
 ## 7. RESPONSABILIDADES
 
-| Actividad | Responsable | Frecuencia |
-|-----------|-------------|-----------|
-| Ejecutar tests unitarios | Carlos | Por commit |
-| Tests de integración | Anthony | Diaria |
-| Validación biometría | Juan | Por sprint |
-| Pentesting básico | Anthony | Mensual |
-| Revisión cobertura | Carlos | Semanal |
+| Actividad                | Responsable | Frecuencia |
+| ------------------------ | ----------- | ---------- |
+| Ejecutar tests unitarios | Carlos      | Por commit |
+| Tests de integración     | Anthony     | Diaria     |
+| Validación biometría     | Juan        | Por sprint |
+| Pentesting básico        | Anthony     | Mensual    |
+| Revisión cobertura       | Carlos      | Semanal    |
 ## 8. REPORTE DE PRUEBAS
 
 ### Plantilla semanal:

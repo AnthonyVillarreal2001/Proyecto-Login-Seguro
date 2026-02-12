@@ -88,13 +88,13 @@ found 0 vulnerabilities
 
 **Dependencias críticas monitoreadas:**
 
-| Paquete | Versión | Estado |
-|---------|---------|--------|
-| express | 5.2.1 | ✅ Seguro |
-| pg | 8.17.1 | ✅ Seguro |
-| bcrypt | 6.0.0 | ✅ Seguro |
-| jsonwebtoken | 9.0.3 | ✅ Seguro |
-| face-api.js | 0.22.2 | ⚠️ Verificar checksum |
+| Paquete      | Versión | Estado               |
+| ------------ | ------- | -------------------- |
+| express      | 5.2.1   | ✅ Seguro             |
+| pg           | 8.17.1  | ✅ Seguro             |
+| bcrypt       | 6.0.0   | ✅ Seguro             |
+| jsonwebtoken | 9.0.3   | ✅ Seguro             |
+| face-api.js  | 0.22.2  | ⚠️ Verificar checksum |
 
 ---
 
@@ -102,16 +102,16 @@ found 0 vulnerabilities
 
 ### Vulnerabilidades por mes
 
-| Período | Total | Crítica | Alta | Media | Baja |
-|---------|-------|---------|------|-------|------|
-| Enero 2026 | 3 | 0 | 1 | 2 | 0 |
-| Febrero 2026 (parcial) | 2 | 0 | 1 | 1 | 0 |
+| Período                | Total | Crítica | Alta | Media | Baja |
+| ---------------------- | ----- | ------- | ---- | ----- | ---- |
+| Enero 2026             | 3     | 0       | 1    | 2     | 0    |
+| Febrero 2026 (parcial) | 2     | 0       | 1    | 1     | 0    |
 
 ### Tiempo promedio remediación
 
-| Mes | Promedio |
-|-----|----------|
-| Enero 2026 | 2.3 días |
+| Mes                    | Promedio |
+| ---------------------- | -------- |
+| Enero 2026             | 2.3 días |
 | Febrero 2026 (parcial) | 2.8 días |
 
 ---
@@ -148,10 +148,10 @@ found 0 vulnerabilities
 
 ### Urgencias (24/7)
 
-| Nombre | Teléfono | Especialidad |
-|--------|----------|--------------|
-| Carlos Campoverde | +593 95 878 9219 | Backend, DB |
-| Juan Pasquel | +593 99 701 7861 | Frontend, Biometría |
+| Nombre             | Teléfono         | Especialidad          |
+| ------------------ | ---------------- | --------------------- |
+| Carlos Campoverde  | +593 95 878 9219 | Backend, DB           |
+| Juan Pasquel       | +593 99 701 7861 | Frontend, Biometría   |
 | Anthony Villarreal | +593 98 387 4232 | Seguridad, Middleware |
 
 ### Procedimiento urgente
