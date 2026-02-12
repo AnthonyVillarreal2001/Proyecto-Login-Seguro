@@ -5,7 +5,7 @@ class DbPool {
     if (!instance) {
       this.pool = new Pool({
         user: 'postgres',
-        host: 'localhost',
+        host: '127.0.0.1',
         database: 'secure_app_db',
         password: '1234',
         port: 5432,
