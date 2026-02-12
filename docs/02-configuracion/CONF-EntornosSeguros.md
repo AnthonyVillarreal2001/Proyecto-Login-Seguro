@@ -1,6 +1,6 @@
 # CONFIGURACIÓN SEGURA DE ENTORNOS
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos (Backend), Juan (Frontend), Anthony (Middleware)  
+**Equipo:** Carlos Campoverde (Backend), Juan Pasquel (Frontend), Anthony Villarreal (Middleware)  
 **Versión:** 1.0
 
 ## 1. CONFIGURACIÓN BACKEND
@@ -90,20 +90,20 @@ NODE_ENV=production
 
 ## 5. CHECKLIST POR ROL
 
-### Checklist Carlos (Backend):
+### Checklist Carlos Campoverde (Backend):
 - DB password en variable entorno
 - JWT secret en variable entorno
 - Clave encriptación en variable entorno
 - bcrypt con costo 10 mínimo
 - Parámetros preparados en todas las queries
 
-### Checklist Juan (Frontend):
+### Checklist Juan Pasquel (Frontend):
 - API URL en variable entorno
 - Timeout sesión 5 minutos
 - Cámara se detiene después de uso
 - No almacenar passwords en estado
 
-### Checklist Anthony (Middleware):
+### Checklist Anthony Villarreal (Middleware):
 - Rate limiting configurado
 - Headers de seguridad (Helmet)
 - CORS restringido a localhost:3000
@@ -133,11 +133,11 @@ openssl rand -base64 48  # Para JWT_SECRET
 ## 7. RESPONSABILIDADES
 
 | Configuración | Responsable | Frecuencia Verificación |
-|---------------|-------------|------------------------|
-| Base de datos | Carlos | Semanal |
-| Encriptación | Carlos | Mensual |
-| Frontend | Juan | Por release |
-| Middleware | Anthony | Por despliegue |
+| ------------- | ----------- | ----------------------- |
+| Base de datos | Carlos      | Semanal                 |
+| Encriptación  | Carlos      | Mensual                 |
+| Frontend      | Juan        | Por release             |
+| Middleware    | Anthony     | Por despliegue          |
 
 ---
 
@@ -147,4 +147,4 @@ openssl rand -base64 48  # Para JWT_SECRET
 - **Juan Pasquel:** __________
 - **Anthony Villarreal:** __________
 
-**Fecha:** [FECHA]
+**Fecha:** 10/01/2026

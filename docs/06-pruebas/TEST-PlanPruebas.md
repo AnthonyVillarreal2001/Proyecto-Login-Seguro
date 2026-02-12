@@ -1,6 +1,6 @@
 # PLAN DE PRUEBAS DE SEGURIDAD
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos (Backend), Juan (Frontend), Anthony (Middleware)  
+**Equipo:** Carlos Campoverde (Backend), Juan Pasquel (Frontend), Anthony Villarreal (Middleware)  
 **Versión:** 1.0
 
 ## 1. TIPOS DE PRUEBAS
@@ -153,7 +153,7 @@ zap-cli active-scan http://localhost:5000
 
 ## 6. CHECKLIST PRE-DEPLOY
 
-### Checklist Carlos (Backend):
+### Checklist Carlos Campoverde (Backend):
 
 - Tests unitarios pasando (>85% cobertura)
 - `npm audit` sin vulnerabilidades críticas
@@ -161,7 +161,7 @@ zap-cli active-scan http://localhost:5000
 - Rate limiting configurado
 - Logging de seguridad activado
 
-### Checklist Juan (Frontend):
+### Checklist Juan Pasquel (Frontend):
 
 - Tests de componentes pasando
 - Cámara se detiene correctamente
@@ -169,7 +169,7 @@ zap-cli active-scan http://localhost:5000
 - No passwords en estado
 - CSP headers configurados
 
-### Checklist Anthony (Middleware):
+### Checklist Anthony Villarreal (Middleware):
 
 - Validación de inputs completa
 - Headers de seguridad (Helmet)
@@ -191,7 +191,7 @@ zap-cli active-scan http://localhost:5000
 
 ```markdown
 # REPORTE PRUEBAS - Semana [XX]
-**Fecha:** [DD/MM/AAAA]
+**Fecha:** 24/01/2026
 
 ## Resumen
 - Tests ejecutados: [X]
@@ -220,4 +220,4 @@ zap-cli active-scan http://localhost:5000
 - Juan Pasquel: __________
 - Anthony Villarreal: __________
 
-**Fecha:** [FECHA]
+**Fecha:** 15/01/2026

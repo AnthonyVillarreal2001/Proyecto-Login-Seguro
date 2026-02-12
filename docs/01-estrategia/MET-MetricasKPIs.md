@@ -1,37 +1,37 @@
 # MÉTRICAS DE SEGURIDAD
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos, Juan, Anthony  
+**Equipo:** Carlos Campoverde, Juan Pasquel, Anthony Villarreal  
 **Versión:** 1.0
 
 ## 1. MÉTRICAS CRÍTICAS
 
 ### 1.1 Calidad de Código
-| Métrica | Objetivo | Responsable | Frecuencia |
-|---------|----------|-------------|------------|
-| Cobertura pruebas | > 80% | Carlos | Semanal |
-| Vulnerabilidades npm audit | 0 críticas | Anthony | Semanal |
-| Issues de seguridad | < 5 abiertos | Juan | Semanal |
+| Métrica                    | Objetivo     | Responsable | Frecuencia |
+| -------------------------- | ------------ | ----------- | ---------- |
+| Cobertura pruebas          | > 80%        | Carlos      | Semanal    |
+| Vulnerabilidades npm audit | 0 críticas   | Anthony     | Semanal    |
+| Issues de seguridad        | < 5 abiertos | Juan        | Semanal    |
 
 ### 1.2 Operaciones
-| Métrica | Objetivo | Responsable | Frecuencia |
-|---------|----------|-------------|------------|
-| Falsos positivos biometría | < 5% | Juan | Diario |
-| Tiempo respuesta API | < 500ms | Anthony | Diario |
-| Login fallidos/hora | < 10 | Carlos | Tiempo real |
+| Métrica                    | Objetivo | Responsable | Frecuencia  |
+| -------------------------- | -------- | ----------- | ----------- |
+| Falsos positivos biometría | < 5%     | Juan        | Diario      |
+| Tiempo respuesta API       | < 500ms  | Anthony     | Diario      |
+| Login fallidos/hora        | < 10     | Carlos      | Tiempo real |
 
 ### 1.3 Seguridad
-| Métrica | Objetivo | Responsable | Frecuencia |
-|---------|----------|-------------|------------|
-| Tiempo remediación | < 7 días | Carlos | Por incidente |
-| Tokens blacklisted | < 50/día | Anthony | Diario |
-| Alertas seguridad | Todas atendidas | Juan | Semanal |
+| Métrica            | Objetivo        | Responsable | Frecuencia    |
+| ------------------ | --------------- | ----------- | ------------- |
+| Tiempo remediación | < 7 días        | Carlos      | Por incidente |
+| Tokens blacklisted | < 50/día        | Anthony     | Diario        |
+| Alertas seguridad  | Todas atendidas | Juan        | Semanal       |
 
 ## 2. DASHBOARD DE MONITOREO
 
 ### 2.1 Resumen Semanal
 ```javascript
 const weeklyMetrics = {
-  semana: '2024-W15',
+  semana: '2026-W02',
   backend: {
     coverage: 85,
     vulnerabilities: 0,
@@ -78,7 +78,7 @@ const weeklyMetrics = {
 ```markdown
 # REPORTE SEGURIDAD - [MES]
 **Generado por:** [Nombre]
-**Fecha:** [DD/MM]
+**Fecha:** 31/01/2026
 
 ## Métricas principales
 - Cobertura: X%
@@ -108,5 +108,5 @@ const weeklyMetrics = {
 
 ---
 
-**Última actualización:** [FECHA]  
-**Próxima revisión métricas:** [FECHA + 1 MES]
+**Última actualización:** 08/01/2026  
+**Próxima revisión métricas:** 05/02/2026

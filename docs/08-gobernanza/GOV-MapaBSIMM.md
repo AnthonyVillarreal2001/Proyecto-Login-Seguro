@@ -1,7 +1,7 @@
 # MAPA DE MADUREZ BSIMM
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos (Backend), Juan (Frontend), Anthony (Middleware)  
-**Fecha:** [FECHA ACTUAL]
+**Equipo:** Carlos Campoverde (Backend), Juan Pasquel (Frontend), Anthony Villarreal (Middleware)  
+**Fecha:** 02/02/2026
 
 ## 1. RESUMEN DE MADUREZ
 
@@ -31,7 +31,7 @@
 ### 2.2 Gestión de la Configuración (CM) - 3/9
 | Actividad | Estado | Responsable | Evidencia |
 |-----------|--------|-------------|-----------|
-| CM1.3: Proceso gestión configuración | ✅ | Anthony | `docs/02-configuracion/CONF-ConfiguracionEntornos.md` |
+| CM1.3: Proceso gestión configuración | ✅ | Anthony | `docs/02-configuracion/CONF-EntornosSeguros.md` |
 | CM2.4: Gestionar activos | ✅ | Carlos | `docs/02-configuracion/INV-InventarioActivos.md` |
 | CM3.2: Auditoría configuración | ❌ | Carlos | Pendiente scripts automatizados |
 
@@ -96,12 +96,12 @@
 - [x] Pruebas de seguridad (Carlos)
 - [ ] Monitoreo y logging (Anthony)
 
-### Sprint 3 (Próximo 2 semanas):
+### Sprint 3 (31/01/2026 - 05/02/2026):
 - [ ] Capacitación OWASP Top 10 (Todos)
 - [ ] Pentesting externo básico (Anthony coordina)
 - [ ] Dashboard métricas (Juan)
 
-### Sprint 4 (Mes 2):
+### Sprint 4 (Cierre de periodo):
 - [ ] Auditoría de código externa
 - [ ] Programa formal de capacitación
 - [ ] Mejora respuesta a incidentes
@@ -109,12 +109,12 @@
 ## 5. METAS DE MADUREZ
 
 ### Meta 1: Nivel 1 BSIMM (Logrado)
-**Fecha objetivo:** [FECHA ACTUAL]  
+**Fecha objetivo:** 02/02/2026  
 **Actividades necesarias:** 15/120  
 **Logrado:** ✅ 24/120
 
 ### Meta 2: Nivel 2 BSIMM
-**Fecha objetivo:** [FECHA + 3 MESES]  
+**Fecha objetivo:** 05/02/2026  
 **Actividades necesarias:** 45/120  
 
 **Actividades pendientes:**
@@ -124,8 +124,8 @@
 4. CA3.1: Análisis estático avanzado
 5. ST3.1: Pentesting externo
 
-### Meta 3: Nivel 3 BSIMM
-**Fecha objetivo:** [FECHA + 9 MESES]  
+### Meta 3: Nivel 3 BSIMM (fase de preparacion)
+**Fecha objetivo:** 05/02/2026  
 **Actividades necesarias:** 75/120  
 
 **Prerequisitos:**
@@ -206,5 +206,5 @@
 
 ---
 
-**Próxima revisión BSIMM:** [FECHA + 1 MES]  
+**Próxima revisión BSIMM:** 05/02/2026  
 **Responsable próxima evaluación:** Anthony Villarreal

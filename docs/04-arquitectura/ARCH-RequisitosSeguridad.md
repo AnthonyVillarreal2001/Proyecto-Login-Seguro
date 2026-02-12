@@ -1,6 +1,6 @@
 # REQUISITOS DE SEGURIDAD
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos (Backend), Juan (Frontend), Anthony (Middleware)  
+**Equipo:** Carlos Campoverde (Backend), Juan Pasquel (Frontend), Anthony Villarreal (Middleware)  
 **Versión:** 1.0
 
 ## 1. REQUISITOS FUNCIONALES DE SEGURIDAD
@@ -202,7 +202,7 @@ test('login fails with wrong password', async () => {
 **Justificación:** [Por qué es necesario]
 **Componentes afectados:** [Archivos .js]
 **Responsable:** [Carlos/Juan/Anthony]
-**Fecha estimada:** [DD/MM/AAAA]
+**Fecha estimada:** 24/01/2026
 
 **Criterios aceptación:**
 1. [Criterio 1]
@@ -219,5 +219,5 @@ test('login fails with wrong password', async () => {
 - Juan Pasquel: __________
 - Anthony Villarreal: __________
 
-**Fecha aprobación:** [FECHA]  
-**Próxima revisión:** [FECHA + 1 MES]
+**Fecha aprobación:** 18/01/2026  
+**Próxima revisión:** 05/02/2026

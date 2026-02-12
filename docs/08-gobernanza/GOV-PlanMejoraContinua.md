@@ -1,24 +1,24 @@
 # PLAN DE MEJORA CONTINUA
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos, Juan, Anthony  
-**Fecha inicio:** [FECHA ACTUAL]
+**Equipo:** Carlos Campoverde, Juan Pasquel, Anthony Villarreal  
+**Fecha inicio:** 05/01/2026
 
 ## 1. VISIÓN Y OBJETIVOS
 
-### Visión 2024:
+### Visión 2026:
 "Ser referente en autenticación segura con biometría facial en Ecuador, con procesos BSIMM Nivel 2 certificados."
 
 ### Objetivos SMART:
-1. **Objetivo 1:** Alcanzar BSIMM Nivel 2 en 3 meses (por Anthony)
-2. **Objetivo 2:** Reducir tiempo remediación a 2 días en 2 meses (por Carlos)
-3. **Objetivo 3:** Implementar pentesting externo mensual en 1 mes (por Juan)
+1. **Objetivo 1:** Alcanzar BSIMM Nivel 2 en 4 semanas (por Anthony)
+2. **Objetivo 2:** Reducir tiempo remediación a 2 días en 4 semanas (por Carlos)
+3. **Objetivo 3:** Implementar pentesting externo en 4 semanas (por Juan)
 4. **Objetivo 4:** Lograr 0 vulnerabilidades críticas en producción (Todos)
 
 ## 2. CICLO DE MEJORA (PDCA)
 
 ### Plan (Sprint Planning):
 - **Reunión:** Lunes 10AM (30 min)
-- **Participantes:** Carlos, Juan, Anthony
+- **Participantes:** Carlos Campoverde, Juan Pasquel, Anthony Villarreal
 - **Salida:** Plan de mejoras para el sprint
 
 ### Do (Ejecución):
@@ -41,23 +41,23 @@
 ### Prioridad 1 (Semana 1-2):
 | Mejora | Responsable | Métrica | Fecha |
 |--------|-------------|---------|-------|
-| Mover claves a .env | Carlos | 100% claves en variables | [DD/MM] |
-| Alertas WhatsApp | Anthony | Alertas funcionando | [DD/MM] |
-| Logging frontend | Juan | Sentry configurado | [DD/MM] |
+| Mover claves a .env | Carlos | 100% claves en variables | 10/01/2026 |
+| Alertas WhatsApp | Anthony | Alertas funcionando | 12/01/2026 |
+| Logging frontend | Juan | Sentry configurado | 15/01/2026 |
 
 ### Prioridad 2 (Semana 3-4):
 | Mejora | Responsable | Métrica | Fecha |
 |--------|-------------|---------|-------|
-| Pentesting externo | Anthony | Reporte completo | [DD/MM] |
-| Capacitación OWASP | Carlos | 100% equipo capacitado | [DD/MM] |
-| Dashboard métricas | Juan | Dashboard accesible | [DD/MM] |
+| Pentesting externo | Anthony | Reporte completo | 22/01/2026 |
+| Capacitación OWASP | Carlos | 100% equipo capacitado | 24/01/2026 |
+| Dashboard métricas | Juan | Dashboard accesible | 26/01/2026 |
 
 ### Prioridad 3 (Mes 2):
 | Mejora | Responsable | Métrica | Fecha |
 |--------|-------------|---------|-------|
-| Liveness detection | Juan | POC funcionando | [DD/MM+30] |
-| Auditoría código externa | Carlos | Reporte recibido | [DD/MM+45] |
-| WAF configurado | Anthony | Reglas implementadas | [DD/MM+60] |
+| Liveness detection | Juan | POC funcionando | 02/02/2026 |
+| Auditoría código externa | Carlos | Reporte recibido | 03/02/2026 |
+| WAF configurado | Anthony | Reglas implementadas | 05/02/2026 |
 
 ## 4. MÉTRICAS DE MEJORA
 
@@ -93,10 +93,10 @@ Responsable: Juan (mantenimiento)
 
 | Tema | Instructor | Fecha | Duración | Asistentes |
 |------|-----------|-------|----------|-----------|
-| OWASP Top 10 2024 | Anthony | [DD/MM] | 4 horas | Todos |
-| Secure Node.js | Carlos | [DD/MM+7] | 3 horas | Carlos, Anthony |
-| React Security | Juan | [DD/MM+14] | 3 horas | Juan, Anthony |
-| GDPR para devs | Externo | [DD/MM+21] | 2 horas | Todos |
+| OWASP Top 10 2026 | Anthony | 13/01/2026 | 4 horas | Todos |
+| Secure Node.js | Carlos | 20/01/2026 | 3 horas | Carlos, Anthony |
+| React Security | Juan | 27/01/2026 | 3 horas | Juan, Anthony |
+| GDPR para devs | Externo | 03/02/2026 | 2 horas | Todos |
 
 ### Presupuesto capacitación:
 - **Total anual:** $1,000
@@ -113,7 +113,7 @@ Facilitador: Rotativo (Carlos → Juan → Anthony)
 6.2 Plantilla retrospectiva:
 markdown
 # RETROSPECTIVA - [MES/AÑO]
-**Fecha:** [DD/MM/AAAA]
+**Fecha:** 31/01/2026
 **Facilitador:** [Nombre]
 
 ## ¿Qué funcionó bien?
@@ -185,14 +185,9 @@ markdown
 - **Prioridades:** Semanal (en sprint planning)
 
 Próximas revisiones programadas:
-[FECHA + 1 MES] - Revisión progreso BSIMM Nivel 2
-
-- **Prioridades:** Semanal (en sprint planning)
-
-### Próximas revisiones programadas:
-- [FECHA + 1 MES] - Revisión progreso BSIMM Nivel 2
-- [FECHA + 2 MESES] - Evaluación presupuesto
-- [FECHA + 3 MESES] - Revisión completa del plan
+- 02/02/2026 - Revisión progreso BSIMM Nivel 2
+- 04/02/2026 - Evaluación presupuesto
+- 05/02/2026 - Revisión completa del plan
 
 ## 11. COMPROMISO DEL EQUIPO
 
@@ -219,5 +214,5 @@ Próximas revisiones programadas:
 - **Juan Pasquel:** __________
 - **Anthony Villarreal:** __________
 
-**Fecha inicio:** [FECHA]  
-**Próxima revisión:** [FECHA + 1 MES]
+**Fecha inicio:** 05/01/2026  
+**Próxima revisión:** 05/02/2026

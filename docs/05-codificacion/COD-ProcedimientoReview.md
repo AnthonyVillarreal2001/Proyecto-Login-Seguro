@@ -1,6 +1,6 @@
 # PROCEDIMIENTO DE CODE REVIEW DE SEGURIDAD
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos (Backend), Juan (Frontend), Anthony (Middleware)  
+**Equipo:** Carlos Campoverde (Backend), Juan Pasquel (Frontend), Anthony Villarreal (Middleware)  
 **Versión:** 1.0
 
 ## 1. FLUJO DE CODE REVIEW
@@ -208,7 +208,7 @@ jwt.sign({...}, process.env.JWT_SECRET, { expiresIn: '5m' });
 ## [SECURITY] [COMPONENTE]: Descripción
 
 **Reportado por:** [Carlos/Juan/Anthony]
-**Fecha:** [DD/MM/AAAA]
+**Fecha:** 20/01/2026
 **Severidad:** [Crítica/Alta/Media/Baja]
 
 ### Descripción
@@ -235,7 +235,7 @@ jwt.sign({...}, process.env.JWT_SECRET, { expiresIn: '5m' });
 @Carlos / @Juan / @Anthony
 
 ### Fecha estimada fix
-[DD/MM/AAAA]
+27/01/2026
 ```
 ## 12. RESPONSABILIDADES FINALES
 
@@ -265,5 +265,5 @@ jwt.sign({...}, process.env.JWT_SECRET, { expiresIn: '5m' });
 - Juan Pasquel: __________
 - Anthony Villarreal: __________
 
-**Fecha implementación:** [FECHA]  
-**Próxima revisión:** [FECHA + 1 MES]
+**Fecha implementación:** 20/01/2026  
+**Próxima revisión:** 05/02/2026
