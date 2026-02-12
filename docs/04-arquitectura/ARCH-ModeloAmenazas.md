@@ -1,7 +1,7 @@
 # MODELO DE AMENAZAS (THREAT MODEL)
 **Proyecto:** Sistema de Autenticación Segura con Biometría Facial  
 **Equipo:** Carlos Campoverde, Juan Pasquel, Anthony Villarreal  
-**Fecha:** [FECHA ACTUAL]
+**Fecha:** 15/01/2026
 
 ## 1. DIAGRAMA DE FLUJO DE DATOS
 
@@ -121,7 +121,7 @@ Cámara localStorage blacklist embeddings
 
 ## 7. REVISIÓN DEL MODELO
 
-**Próxima revisión:** [FECHA + 1 MES]
+**Próxima revisión:** 05/02/2026
 
 ### Cambios significativos requeridos:
 

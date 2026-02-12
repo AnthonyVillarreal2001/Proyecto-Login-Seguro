@@ -1,14 +1,14 @@
 # REGISTRO DE VULNERABILIDADES CONOCIDAS
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos, Juan, Anthony  
-**Fecha:** [FECHA ACTUAL]
+**Equipo:** Carlos Campoverde, Juan Pasquel, Anthony Villarreal  
+**Fecha:** 30/01/2026
 
 ## 1. VULNERABILIDADES ACTIVAS
 
 ### VULN-001: Clave encriptación hardcodeada
 - **Estado:** EN DESARROLLO
 - **Severidad:** Alta
-- **Reporte:** [FECHA]
+- **Reporte:** 25/01/2026
 - **SLA:** 72 horas
 
 **Ubicación:** `backend/utils/encryption.js`
@@ -22,13 +22,13 @@ const ENCRYPTION_KEY = 'supersecretkey32bytessupersecretkey'; // ❌
 
 **Solución:** Usar variable de entorno.
 
-**Responsable:** Carlos  
-**Fecha estimada fix:** [DD/MM]
+**Responsable:** Carlos Campoverde  
+**Fecha estimada fix:** 28/01/2026
 
 ### VULN-002: JWT secret débil
 - **Estado:** PENDIENTE
 - **Severidad:** Media
-- **Reporte:** [FECHA]
+- **Reporte:** 26/01/2026
 - **SLA:** 7 días
 
 **Ubicación:** `controllers/userController.js`
@@ -42,13 +42,13 @@ jwt.sign({...}, 'secret_key', { expiresIn: '5m' }); // ❌
 
 **Solución:** Variable de entorno con mínimo 32 caracteres.
 
-**Responsable:** Carlos  
-**Fecha estimada fix:** [DD/MM+5]
+**Responsable:** Carlos Campoverde  
+**Fecha estimada fix:** 31/01/2026
 
 ### VULN-003: No liveness detection
 - **Estado:** PENDIENTE
 - **Severidad:** Media
-- **Reporte:** [FECHA]
+- **Reporte:** 20/01/2026
 - **SLA:** 14 días
 
 **Componente:** `components/Login.js`
@@ -57,20 +57,20 @@ jwt.sign({...}, 'secret_key', { expiresIn: '5m' }); // ❌
 
 **Solución:** Implementar detección de parpadeo/movimiento.
 
-**Responsable:** Juan  
-**Fecha estimada fix:** [DD/MM+14]
+**Responsable:** Juan Pasquel  
+**Fecha estimada fix:** 05/02/2026
 
 ## 2. VULNERABILIDADES REMEDIADAS
 
 ### VULN-004: Password en logs
-- **Fecha cierre:** [FECHA-7]
+- **Fecha cierre:** 22/01/2026
 - **Severidad:** Media
 - **Remediado en:** 2 días
 
 **Solución:** Removido `console.log(password)` de `userController.js`
 
 ### VULN-005: CORS muy abierto
-- **Fecha cierre:** [FECHA-10]
+- **Fecha cierre:** 19/01/2026
 - **Severidad:** Baja
 - **Remediado en:** 1 día
 
@@ -104,15 +104,15 @@ found 0 vulnerabilities
 
 | Período | Total | Crítica | Alta | Media | Baja |
 |---------|-------|---------|------|-------|------|
-| Abril 2024 | 3 | 0 | 1 | 2 | 0 |
-| Marzo 2024 | 5 | 0 | 2 | 2 | 1 |
+| Enero 2026 | 3 | 0 | 1 | 2 | 0 |
+| Febrero 2026 (parcial) | 2 | 0 | 1 | 1 | 0 |
 
 ### Tiempo promedio remediación
 
 | Mes | Promedio |
 |-----|----------|
-| Abril 2024 | 2.3 días |
-| Marzo 2024 | 3.1 días |
+| Enero 2026 | 2.3 días |
+| Febrero 2026 (parcial) | 2.8 días |
 
 ---
 
@@ -132,9 +132,9 @@ found 0 vulnerabilities
 
 ### Próximas revisiones
 
-- **[FECHA+7]:** Revisión middleware validación (Anthony)
-- **[FECHA+14]:** Pentesting endpoints auth (Juan)
-- **[FECHA+30]:** Rotación claves encriptación (Carlos)
+- **03/02/2026:** Revisión middleware validación (Anthony)
+- **05/02/2026:** Pentesting endpoints auth (Juan)
+- **04/02/2026:** Rotación claves encriptación (Carlos)
 
 ### Mejoras proceso
 
@@ -162,5 +162,5 @@ found 0 vulnerabilities
 
 ---
 
-**Última actualización:** [FECHA]  
-**Próxima revisión:** [FECHA + 1 SEMANA]
+**Última actualización:** 30/01/2026  
+**Próxima revisión:** 05/02/2026

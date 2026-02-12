@@ -1,6 +1,6 @@
 # PROCESO DE GESTIÓN DE VULNERABILIDADES
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos, Juan, Anthony  
+**Equipo:** Carlos Campoverde, Juan Pasquel, Anthony Villarreal  
 **Versión:** 1.0
 
 ## 1. FLUJO GENERAL
@@ -44,7 +44,7 @@
 **[VULN-XXX]: Descripción breve**
 
 **Reportado por:** [Nombre]  
-**Fecha:** [DD/MM/AAAA]  
+**Fecha:** 12/01/2026  
 **Componente:** [userController.js, Login.js, etc.]
 
 ### Descripción
@@ -154,6 +154,6 @@ app.use((req, res, next) => {
 
 | Responsable | Firma | Fecha |
 |------------|-------|-------|
-| Carlos Campoverde | __________ | [FECHA] |
-| Juan Pasquel | __________ | [FECHA] |
-| Anthony Villarreal | __________ | [FECHA] |
+| Carlos Campoverde | __________ | 12/01/2026 |
+| Juan Pasquel | __________ | 12/01/2026 |
+| Anthony Villarreal | __________ | 12/01/2026 |

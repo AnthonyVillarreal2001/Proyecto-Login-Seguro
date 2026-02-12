@@ -1,6 +1,6 @@
 # INVENTARIO DE ACTIVOS
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos, Juan, Anthony  
+**Equipo:** Carlos Campoverde, Juan Pasquel, Anthony Villarreal  
 **Versión:** 1.0
 
 ## 1. ACTIVOS CRÍTICOS
@@ -71,19 +71,19 @@ winston: ^3.19.0
 
 ## 5. RESPONSABILIDADES
 
-### Carlos (Backend):
+### Carlos Campoverde (Backend):
 - Base de datos PostgreSQL
 - Encriptación embeddings
 - Endpoints de autenticación
 - Variables de entorno backend
 
-### Juan (Frontend):
+### Juan Pasquel (Frontend):
 - Modelos face-api.js (35MB)
 - Gestión de tokens frontend
 - Timeout de sesión cliente
 - Componentes de biometría
 
-### Anthony (Middleware):
+### Anthony Villarreal (Middleware):
 - Configuración seguridad servidor
 - Logging y monitoreo
 - Rate limiting
@@ -125,5 +125,5 @@ async deleteUser(id) {
 
 ---
 
-**Última actualización:** [FECHA]  
+**Última actualización:** 10/01/2026  
 **Responsable inventario:** Carlos Campoverde

@@ -1,6 +1,6 @@
 # ESTÁNDARES DE CODIFICACIÓN SEGURA
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos (Backend), Juan (Frontend), Anthony (Middleware)  
+**Equipo:** Carlos Campoverde (Backend), Juan Pasquel (Frontend), Anthony Villarreal (Middleware)  
 **Versión:** 1.0
 
 ## 1. REGLAS GENERALES
@@ -136,7 +136,7 @@ console.log(password) // ❌
 
 ## 6. CHECKLIST DE CODE REVIEW
 
-### Checklist para Carlos (Backend):
+### Checklist para Carlos Campoverde (Backend):
 
 - JWT secret viene de variable entorno
 - bcrypt con costo mínimo 10
@@ -145,7 +145,7 @@ console.log(password) // ❌
 - No `console.log` de datos sensibles
 - Manejo de errores con try/catch
 
-### Checklist para Juan (Frontend):
+### Checklist para Juan Pasquel (Frontend):
 
 - Cámara se detiene correctamente
 - No almacenar passwords en estado
@@ -153,7 +153,7 @@ console.log(password) // ❌
 - Timeout de sesión configurado
 - CSP headers adecuados
 
-### Checklist para Anthony (Middleware):
+### Checklist para Anthony Villarreal (Middleware):
 
 - Validación de todos los inputs
 - Rate limiting en endpoints críticos
@@ -233,4 +233,4 @@ async login(req, res) {
 - Juan Pasquel: __________
 - Anthony Villarreal: __________
 
-**Fecha:** [FECHA]
+**Fecha:** 20/01/2026

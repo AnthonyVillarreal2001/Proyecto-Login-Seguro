@@ -1,6 +1,6 @@
 # MONITOREO Y LOGGING DE SEGURIDAD
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos (Backend), Juan (Frontend), Anthony (Middleware)  
+**Equipo:** Carlos Campoverde (Backend), Juan Pasquel (Frontend), Anthony Villarreal (Middleware)  
 **Versión:** 1.0
 
 ## 1. CONFIGURACIÓN DE LOGGING
@@ -137,7 +137,7 @@ find logs/ -name "*.log" -size +5M -exec gzip {} \;
 ## 5. AUDITORÍA DE LOGS
 
 ### 5.1 Revisión semanal (Lunes 9AM):
-**Participantes:** Carlos, Juan, Anthony  
+**Participantes:** Carlos Campoverde, Juan Pasquel, Anthony Villarreal  
 **Duración:** 30 minutos
 
 **Agenda:**
@@ -149,7 +149,7 @@ find logs/ -name "*.log" -size +5M -exec gzip {} \;
 ### 5.2 Checklist de auditoría:
 ```markdown
 ## AUDITORÍA DE LOGS - Semana [XX]
-**Fecha:** [DD/MM/AAAA]
+**Fecha:** 30/01/2026
 **Revisado por:** [Nombres]
 
 ### Eventos críticos encontrados:
@@ -161,7 +161,7 @@ find logs/ -name "*.log" -size +5M -exec gzip {} \;
 - [Patrón 2]
 
 ### Acciones acordadas:
-- [ ] [Acción] - Responsable: [Nombre] - Fecha: [DD/MM]
+- [ ] [Acción] - Responsable: [Nombre] - Fecha: 02/02/2026
 
 ### Firmas:
 - Carlos Campoverde: __________
@@ -205,7 +205,7 @@ find logs/ -name "*.log" -size +5M -exec gzip {} \;
 ### 8.1 Login exitoso:
 ```json
 {
-  "timestamp": "2024-04-15T10:30:00Z",
+  "timestamp": "2026-01-30T10:30:00Z",
   "level": "info",
   "message": "Login exitoso",
   "userId": 123,
@@ -218,7 +218,7 @@ find logs/ -name "*.log" -size +5M -exec gzip {} \;
 ### 8.2 Intento sospechoso:
 ```json
 {
-  "timestamp": "2024-04-15T10:35:00Z",
+  "timestamp": "2026-01-30T10:35:00Z",
   "level": "warn",
   "message": "Multiple failed logins",
   "email": "attacker@example.com",
@@ -231,7 +231,7 @@ find logs/ -name "*.log" -size +5M -exec gzip {} \;
 ### 8.3 Error crítico:
 ```json
 {
-  "timestamp": "2024-04-15T10:40:00Z",
+  "timestamp": "2026-01-30T10:40:00Z",
   "level": "error",
   "message": "Encryption failed",
   "component": "encryption.js",
@@ -263,5 +263,5 @@ find logs/ -name "*.log" -size +5M -exec gzip {} \;
 - **Carlos Campoverde:** __________
 - **Juan Pasquel:** __________
 - **Anthony Villarreal:** __________
-- **Fecha:** [FECHA]
-- **Próxima revisión:** [FECHA + 1 MES]
+- **Fecha:** 30/01/2026
+- **Próxima revisión:** 05/02/2026

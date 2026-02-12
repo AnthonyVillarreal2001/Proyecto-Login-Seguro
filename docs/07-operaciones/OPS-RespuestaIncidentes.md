@@ -1,6 +1,6 @@
 # PROCEDIMIENTO DE RESPUESTA A INCIDENTES
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos (Backend), Juan (Frontend), Anthony (Middleware)  
+**Equipo:** Carlos Campoverde (Backend), Juan Pasquel (Frontend), Anthony Villarreal (Middleware)  
 **Versión:** 1.0
 
 ## 1. CONTACTOS DE EMERGENCIA
@@ -114,21 +114,21 @@ pm2 restart secure-auth
 
 ## 5. CHECKLIST DE RESPUESTA
 
-### Checklist para Carlos (Backend):
+### Checklist para Carlos Campoverde (Backend):
 - Detener servicios comprometidos
 - Hacer backup inmediato de DB
 - Rotar claves y credenciales
 - Revisar logs para IOC
 - Actualizar dependencias vulnerables
 
-### Checklist para Juan (Frontend):
+### Checklist para Juan Pasquel (Frontend):
 - Invalidar tokens en clientes
 - Mostrar mensaje de mantenimiento
 - Revisar código cliente-side
 - Actualizar modelos face-api.js
 - Comunicar a usuarios
 
-### Checklist para Anthony (Middleware):
+### Checklist para Anthony Villarreal (Middleware):
 - Bloquear IPs atacantes
 - Ajustar reglas WAF/firewall
 - Revisar configuraciones
@@ -138,7 +138,7 @@ pm2 restart secure-auth
 ## 6. PLANTILLA DE REPORTE
 ```markdown
 # REPORTE DE INCIDENTE [ID-001]
-**Fecha:** [DD/MM/AAAA HH:MM]
+**Fecha:** 02/02/2026 10:00
 **Reportado por:** [Nombre]
 **Nivel:** [Crítico/Alto/Medio/Bajo]
 
@@ -198,7 +198,7 @@ node scripts/revoke-all-tokens.js
 
 ### 8.1 Para usuarios:
 ```markdown
-## NOTICIA IMPORTANTE - [Fecha]
+## NOTICIA IMPORTANTE - 02/02/2026
 
 Estimados usuarios,
 
@@ -225,9 +225,9 @@ Equipo de Seguridad
 
 | Fecha | Escenario | Responsable |
 |-------|-----------|-------------|
-| [DD/MM+15] | Fuga de embeddings | Carlos |
-| [DD/MM+30] | Ataque DDoS | Anthony |
-| [DD/MM+45] | Spoofing biométrico | Juan |
+| 22/01/2026 | Fuga de embeddings | Carlos |
+| 29/01/2026 | Ataque DDoS | Anthony |
+| 03/02/2026 | Spoofing biométrico | Juan |
 
 ### 9.2 Métricas de respuesta:
 - **Tiempo promedio detección:** [Meta: < 5 min]
@@ -242,5 +242,5 @@ Equipo de Seguridad
 - **Carlos Campoverde:** __________
 - **Juan Pasquel:** __________
 - **Anthony Villarreal:** __________
-- **Fecha:** [FECHA]
-- **Próxima revisión:** [FECHA + 3 MESES]
+- **Fecha:** 02/02/2026
+- **Próxima revisión:** 05/02/2026
