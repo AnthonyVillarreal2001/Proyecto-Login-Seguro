@@ -15,6 +15,11 @@ const {
   validatePreferences
 } = require('./middlewares/validateMiddleware');
 const { createTables } = require('./database/schema');
+const UserModel = require('./models/userModel');
+const { decryptFaceEmbedding } = require('./utils/encryption');
+
+// Referencia a euclideanDistance del controlador
+const euclideanDistance = userController.euclideanDistance;
 const sessionTimeout = require('./middlewares/sessionTimeout');
 const app = express();
 app.use(cors({ origin: 'http://localhost:3000' }));
@@ -169,6 +174,20 @@ app.post('/profile/save-face-embedding', authMiddleware(), userController.saveFa
 app.delete('/profile/biometric', authMiddleware(), userController.removeFaceEmbedding);
 app.get('/profile/face-unique', authMiddleware(), userController.checkMyFaceUnique);
 app.post('/auth/renew-token', authMiddleware(), userController.renewToken);
+
+// ⚠️ SOLO PARA DESARROLLO — Endpoint para resetear la DB durante pruebas
+// TODO: Eliminar antes de producción
+app.post('/dev/reset-db', async (req, res) => {
+  try {
+    const pool = require('./config/db').getPool();
+    await pool.query('DELETE FROM users');
+    console.log('[DEV] Base de datos reseteada');
+    res.json({ message: 'Base de datos limpiada exitosamente' });
+  } catch (err) {
+    console.error('[DEV] Error reseteando DB:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 createTables().then(() => {
   if (process.env.NODE_ENV !== 'test') {

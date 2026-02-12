@@ -188,6 +188,11 @@ const ProfileSettings = () => {
           );
         }
       } catch (checkErr) {
+        // Si es un error de duplicado, re-lanzar para que el usuario lo vea
+        if (checkErr.message?.includes('ya está registrado')) {
+          throw checkErr;
+        }
+        // Solo ignorar errores de red/API no disponible
         console.log('API de verificación no disponible:', checkErr.message);
       }
 

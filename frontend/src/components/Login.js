@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import * as faceapi from 'face-api.js';
 import { Button, Form, Modal, Spinner, Card } from 'react-bootstrap';
+import { ensureLiveness as runLiveness, generateRandomSequence } from '../utils/livenessDetection';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [dbEmail, setDbEmail] = useState(''); // ← Email exacto de la DB
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -17,87 +19,30 @@ const Login = () => {
   const [blinkCount, setBlinkCount] = useState(0);
   const [livenessLog, setLivenessLog] = useState([]);
   const [livenessStep, setLivenessStep] = useState(0);
+  const [livenessSequence, setLivenessSequence] = useState(() => generateRandomSequence());
   const videoRef = useRef(null);
   const navigate = useNavigate();
 
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  const livenessSequence = [
-    { key: 'turn_right', label: 'Gira la cabeza a la derecha' },
-    { key: 'turn_left', label: 'Gira la cabeza a la izquierda' },
-    { key: 'smile', label: 'Sonríe ampliamente' },
-  ];
 
-  const ensureLiveness = async () => {
-    const timeoutMs = 12000;
-    const start = Date.now();
-    let step = 0;
+  const ensureLivenessCheck = async () => {
+    const sequence = generateRandomSequence();
+    setLivenessSequence(sequence);
     setLivenessStep(0);
     setBlinkCount(0);
-    let lastNoseX = null;
-    let movementAccum = 0;
-    let stepFrames = 0;
 
-    while (Date.now() - start < timeoutMs && step < livenessSequence.length) {
-      const detection = await faceapi
-        .detectSingleFace(videoRef.current)
-        .withFaceLandmarks()
-        .withFaceExpressions();
-
-      if (detection?.landmarks) {
-        const box = detection.detection.box;
-        const centerX = box.x + box.width / 2;
-        const nose = detection.landmarks.getNose()[3];
-        const mouth = detection.landmarks.getMouth();
-        stepFrames += 1;
-
-        // Cabeza girada usando desplazamiento de la nariz respecto al centro
-        const yawRight = nose.x - centerX > box.width * 0.1; // exigir giro mayor
-        const yawLeft = centerX - nose.x > box.width * 0.1;
-
-        if (lastNoseX !== null) {
-          movementAccum += Math.abs(nose.x - lastNoseX);
-        }
-        lastNoseX = nose.x;
-
-        // Sonrisa sencilla: ancho/alto de boca + expresión "happy"
-        const mouthWidth = Math.hypot(mouth[6].x - mouth[0].x, mouth[6].y - mouth[0].y);
-        const mouthHeight = Math.hypot(mouth[3].x - mouth[9].x, mouth[3].y - mouth[9].y) || 1;
-        const smileScore = (detection.expressions?.happy || 0) + mouthWidth / mouthHeight;
-
-        const current = livenessSequence[step].key;
-
-        if (current === 'turn_right' && yawRight && movementAccum > box.width * 0.15 && stepFrames >= 2) {
-          logLiveness('Giro a la derecha detectado ✅');
-          step += 1;
-          setLivenessStep(step);
-          movementAccum = 0;
-          stepFrames = 0;
-        } else if (current === 'turn_left' && yawLeft) {
-          logLiveness('Giro a la izquierda detectado ✅');
-          step += 1;
-          setLivenessStep(step);
-          movementAccum = 0;
-          stepFrames = 0;
-        } else if (current === 'smile' && smileScore > 2.8) {
-          logLiveness('Sonrisa detectada ✅');
-          step += 1;
-          setLivenessStep(step);
-          movementAccum = 0;
-          stepFrames = 0;
-        } else {
-          logLiveness(`Mantén la acción: ${livenessSequence[step].label}`);
-        }
-      } else {
-        logLiveness('Buscando rostro...');
-      }
-
-      await wait(220);
-    }
-
-    if (step < livenessSequence.length) {
-      logLiveness('No se completó la secuencia de vida ❌');
-      throw new Error('No se completaron las acciones de vida (girar y sonreír).');
-    }
+    await runLiveness(videoRef.current, {
+      onStepChange: (step, seq) => {
+        setLivenessStep(step);
+        setLivenessSequence(seq);
+      },
+      onLog: (msg) => {
+        setLivenessLog((prev) => [...prev.slice(-6), msg]);
+      },
+      onStatusChange: (msg) => {
+        setLivenessStatus(msg);
+      },
+    });
   };
 
   // Verificar si venimos de logout
@@ -187,6 +132,7 @@ const Login = () => {
 
       // Si el login requiere verificación facial
       if (res.data.requiresFaceVerification) {
+        setDbEmail(res.data.email); // ← Guardar el email exacto de la DB
         setModalMessage('Contraseña válida. Ahora verifique su identidad facial.');
         setShowSuccessModal(true);
         
@@ -241,7 +187,7 @@ const Login = () => {
     try {
       await loadModels();
 
-      await ensureLiveness();
+      await ensureLivenessCheck();
 
       const detection = await faceapi
         .detectSingleFace(videoRef.current)
@@ -256,7 +202,7 @@ const Login = () => {
       
       // Enviar para verificación
       const res = await axios.post('/auth/verify-face', { 
-        email, 
+        email: dbEmail, // ← Usar el email exacto de la DB, no el que escribió el usuario
         embedding 
       });
 
@@ -388,13 +334,24 @@ const Login = () => {
               maxHeight: '400px',
               borderRadius: '12px',
               border: '4px solid #007bff',
-              background: '#000'
+              background: '#000',
+              transform: 'scaleX(-1)'
             }}
           />
 
           <div className="mt-3 text-start">
             <p className="mb-1"><strong>Estado liveness:</strong> {livenessStatus}</p>
-            <p className="mb-2 small text-muted">Paso {Math.min(livenessStep + 1, livenessSequence.length)} de {livenessSequence.length}: {livenessSequence[Math.min(livenessStep, livenessSequence.length - 1)].label}</p>
+            <p className="mb-2 small text-muted">
+              Paso {Math.min(livenessStep + 1, livenessSequence.length)} de {livenessSequence.length}:
+              {' '}{livenessSequence[Math.min(livenessStep, livenessSequence.length - 1)]?.icon} {livenessSequence[Math.min(livenessStep, livenessSequence.length - 1)]?.label || 'Preparando...'}
+            </p>
+            <div className="d-flex gap-2 mb-2">
+              {livenessSequence.map((action, idx) => (
+                <span key={action.key} className={`badge ${idx < livenessStep ? 'bg-success' : idx === livenessStep ? 'bg-warning text-dark' : 'bg-secondary'}`}>
+                  {action.icon} {idx < livenessStep ? '✓' : idx + 1}
+                </span>
+              ))}
+            </div>
             <div className="small">
               <div className="fw-bold">Logs recientes:</div>
               <ul className="mb-0 ps-3">

@@ -497,7 +497,9 @@ const userController = {
     const { email, embedding } = req.body;
     
     try {
+      console.log('[verify-face] Email recibido:', JSON.stringify(email), '| Embedding length:', embedding?.length);
       const user = await UserModel.findUserByEmail(email);
+      console.log('[verify-face] Usuario encontrado:', user ? user.email : 'NO');
       if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
 
       const savedEncryptedEmbedding = user.preferences?.faceEmbedding;
@@ -512,6 +514,7 @@ const userController = {
       }
       
       const distance = euclideanDistance(savedEmbedding, embedding);
+      console.log('[verify-face] Distancia facial:', distance);
       if (distance < 0.6) {
         const token = jwt.sign(
           { id: user.id, role: user.role, email: user.email }, 
