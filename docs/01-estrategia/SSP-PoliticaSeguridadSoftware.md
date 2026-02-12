@@ -1,6 +1,6 @@
 # POLÍTICA DE SEGURIDAD DE SOFTWARE
 **Proyecto:** Sistema de Autenticación Segura  
-**Equipo:** Carlos (Backend), Juan (Frontend), Anthony (Middleware)  
+**Equipo:** Carlos Campoverde (Backend), Juan Pasquel (Frontend), Anthony Villarreal (Middleware)  
 **Versión:** 1.0
 
 ## 1. PROPÓSITO
@@ -89,5 +89,5 @@ Revisar esta política cada 3 meses o cuando:
 - **Juan Pasquel:** __________
 - **Anthony Villarreal:** __________
 
-**Fecha:** [FECHA]  
-**Próxima revisión:** [FECHA + 3 MESES]
+**Fecha:** 05/01/2026  
+**Próxima revisión:** 05/02/2026
