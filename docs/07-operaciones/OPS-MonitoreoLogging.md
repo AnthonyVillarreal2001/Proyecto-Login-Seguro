@@ -75,13 +75,13 @@ console.log('Biometric registration successful');
 
 ### 2.1 Métricas a monitorear:
 
-| Métrica | Umbral Alerta | Responsable | Acción |
-|---------|---------------|-------------|--------|
-| Login fallidos/minuto | > 10 | Anthony | Bloquear IP |
-| Uso CPU backend | > 80% por 5 min | Carlos | Escalar/optimizar |
-| Tiempo respuesta API | > 1000ms | Anthony | Investigar |
-| Embeddings guardados/hora | > 100 | Juan | Verificar autenticidad |
-| Tokens blacklisted | > 50 en 1 hora | Carlos | Investigar ataque |
+| Métrica                   | Umbral Alerta   | Responsable | Acción                 |
+| ------------------------- | --------------- | ----------- | ---------------------- |
+| Login fallidos/minuto     | > 10            | Anthony     | Bloquear IP            |
+| Uso CPU backend           | > 80% por 5 min | Carlos      | Escalar/optimizar      |
+| Tiempo respuesta API      | > 1000ms        | Anthony     | Investigar             |
+| Embeddings guardados/hora | > 100           | Juan        | Verificar autenticidad |
+| Tokens blacklisted        | > 50 en 1 hora  | Carlos      | Investigar ataque      |
 
 ### 2.2 Dashboard de monitoreo:
 ```
@@ -120,12 +120,12 @@ const dailyReport = {
 
 ### 4.1 Política de retención:
 
-| Tipo de log | Retención | Ubicación | Responsable |
-|-------------|-----------|-----------|-------------|
-| security.log | 90 días | logs/security.log | Anthony |
-| error.log | 30 días | logs/error.log | Carlos |
-| access.log | 7 días | logs/access.log | Anthony |
-| audit DB | 180 días | PostgreSQL audit_log | Carlos |
+| Tipo de log  | Retención | Ubicación            | Responsable |
+| ------------ | --------- | -------------------- | ----------- |
+| security.log | 90 días   | logs/security.log    | Anthony     |
+| error.log    | 30 días   | logs/error.log       | Carlos      |
+| access.log   | 7 días    | logs/access.log      | Anthony     |
+| audit DB     | 180 días  | PostgreSQL audit_log | Carlos      |
 
 ### 4.2 Script de rotación:
 ```bash

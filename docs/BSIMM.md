@@ -32,19 +32,19 @@ Consolidar la documentacion de seguridad del proyecto bajo la metodologia BSIMM 
 - Plan de mejora continua: [docs/08-gobernanza/GOV-PlanMejoraContinua.md](docs/08-gobernanza/GOV-PlanMejoraContinua.md)
 
 ## 4. CRONOLOGIA DEL PERIODO
-| Fecha | Entregable | Responsable |
-|-------|------------|-------------|
-| 05/01/2026 | Politica de seguridad | Carlos Campoverde |
-| 08/01/2026 | Metricas y KPIs | Anthony Villarreal |
-| 10/01/2026 | Configuracion e inventario | Carlos Campoverde |
+| Fecha      | Entregable                  | Responsable        |
+| ---------- | --------------------------- | ------------------ |
+| 05/01/2026 | Politica de seguridad       | Carlos Campoverde  |
+| 08/01/2026 | Metricas y KPIs             | Anthony Villarreal |
+| 10/01/2026 | Configuracion e inventario  | Carlos Campoverde  |
 | 12/01/2026 | Proceso de vulnerabilidades | Anthony Villarreal |
-| 15/01/2026 | Modelo de amenazas | Anthony Villarreal |
-| 18/01/2026 | Requisitos de seguridad | Carlos Campoverde |
-| 20/01/2026 | Estandares y code review | Juan Pasquel |
-| 24/01/2026 | Plan de pruebas | Carlos Campoverde |
-| 30/01/2026 | Monitoreo y logging | Anthony Villarreal |
-| 02/02/2026 | Respuesta a incidentes | Juan Pasquel |
-| 05/02/2026 | Mapa BSIMM y plan mejora | Equipo completo |
+| 15/01/2026 | Modelo de amenazas          | Anthony Villarreal |
+| 18/01/2026 | Requisitos de seguridad     | Carlos Campoverde  |
+| 20/01/2026 | Estandares y code review    | Juan Pasquel       |
+| 24/01/2026 | Plan de pruebas             | Carlos Campoverde  |
+| 30/01/2026 | Monitoreo y logging         | Anthony Villarreal |
+| 02/02/2026 | Respuesta a incidentes      | Juan Pasquel       |
+| 05/02/2026 | Mapa BSIMM y plan mejora    | Equipo completo    |
 
 ## 5. APROBACIONES
 - Carlos Campoverde: __________

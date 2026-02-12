@@ -20,36 +20,36 @@ Cámara localStorage blacklist embeddings
 
 ### 2.1 Frontend React
 
-| Amenaza | Componente | Descripción | Mitigación |
-|---------|------------|-------------|------------|
-| **Spoofing** | Login.js | Rostro falso en cámara | Usar face-api.js con modelo entrenado |
-| **Tampering** | localStorage | Modificar token JWT | Validación server-side, timeout corto |
-| **Repudio** | SessionManager.js | Negar acciones realizadas | Logging de eventos críticos |
-| **Info Disclosure** | auth.js | Exponer token en consola | No loggear tokens, usar HttpOnly cookies |
-| **DoS** | face-api.js | Carga pesada de modelos | Lazy loading, modelos optimizados |
-| **Elevation of Privilege** | AdminDashboard.js | Cliente acceder como admin | Validación de roles en backend |
+| Amenaza                    | Componente        | Descripción                | Mitigación                               |
+| -------------------------- | ----------------- | -------------------------- | ---------------------------------------- |
+| **Spoofing**               | Login.js          | Rostro falso en cámara     | Usar face-api.js con modelo entrenado    |
+| **Tampering**              | localStorage      | Modificar token JWT        | Validación server-side, timeout corto    |
+| **Repudio**                | SessionManager.js | Negar acciones realizadas  | Logging de eventos críticos              |
+| **Info Disclosure**        | auth.js           | Exponer token en consola   | No loggear tokens, usar HttpOnly cookies |
+| **DoS**                    | face-api.js       | Carga pesada de modelos    | Lazy loading, modelos optimizados        |
+| **Elevation of Privilege** | AdminDashboard.js | Cliente acceder como admin | Validación de roles en backend           |
 
 ### 2.2 Backend Node.js
 
-| Amenaza | Componente | Descripción | Mitigación |
-|---------|------------|-------------|------------|
-| **Spoofing** | userController.js | Credenciales robadas | bcrypt hashing, rate limiting |
-| **Tampering** | validateMiddleware.js | Input malicioso | Sanitización con express-validator |
-| **Repudio** | blacklist.js | Negar logout | Logging de tokens revocados |
-| **Info Disclosure** | encryption.js | Exponer clave AES | Variables de entorno, no hardcode |
-| **DoS** | index.js | Many login attempts | Rate limiting (10/5min) |
-| **Elevation of Privilege** | authMiddleware.js | Acceso no autorizado | Validación JWT + roles |
+| Amenaza                    | Componente            | Descripción          | Mitigación                         |
+| -------------------------- | --------------------- | -------------------- | ---------------------------------- |
+| **Spoofing**               | userController.js     | Credenciales robadas | bcrypt hashing, rate limiting      |
+| **Tampering**              | validateMiddleware.js | Input malicioso      | Sanitización con express-validator |
+| **Repudio**                | blacklist.js          | Negar logout         | Logging de tokens revocados        |
+| **Info Disclosure**        | encryption.js         | Exponer clave AES    | Variables de entorno, no hardcode  |
+| **DoS**                    | index.js              | Many login attempts  | Rate limiting (10/5min)            |
+| **Elevation of Privilege** | authMiddleware.js     | Acceso no autorizado | Validación JWT + roles             |
 
 ### 2.3 Base de Datos
 
-| Amenaza | Componente | Descripción | Mitigación |
-|---------|------------|-------------|------------|
-| **Spoofing** | db.js | Credenciales DB débiles | Contraseña fuerte, no usar '1234' |
-| **Tampering** | userModel.js | SQL injection | Parámetros preparados |
-| **Repudio** | users table | Negar registro | Timestamp automático |
-| **Info Disclosure** | preferences JSON | Embeddings faciales | Encriptación AES-256 |
-| **DoS** | PostgreSQL | Many connections | Pool de conexiones limitado |
-| **Elevation of Privilege** | user roles | Cliente accede como admin | Enums ('admin','client') |
+| Amenaza                    | Componente       | Descripción               | Mitigación                        |
+| -------------------------- | ---------------- | ------------------------- | --------------------------------- |
+| **Spoofing**               | db.js            | Credenciales DB débiles   | Contraseña fuerte, no usar '1234' |
+| **Tampering**              | userModel.js     | SQL injection             | Parámetros preparados             |
+| **Repudio**                | users table      | Negar registro            | Timestamp automático              |
+| **Info Disclosure**        | preferences JSON | Embeddings faciales       | Encriptación AES-256              |
+| **DoS**                    | PostgreSQL       | Many connections          | Pool de conexiones limitado       |
+| **Elevation of Privilege** | user roles       | Cliente accede como admin | Enums ('admin','client')          |
 
 ## 3. ESCENARIOS DE ATAQUE
 
@@ -113,11 +113,11 @@ Cámara localStorage blacklist embeddings
 
 ## 6. RESPONSABILIDADES DEL EQUIPO
 
-| Miembro | Responsabilidades de Seguridad |
-|---------|--------------------------------|
-| **Carlos Campoverde** | Arquitectura backend, encriptación, base de datos |
-| **Juan Pasquel** | Frontend, biometría, gestión de sesiones cliente |
-| **Anthony Villarreal** | Middleware, validación, pruebas de seguridad |
+| Miembro                | Responsabilidades de Seguridad                    |
+| ---------------------- | ------------------------------------------------- |
+| **Carlos Campoverde**  | Arquitectura backend, encriptación, base de datos |
+| **Juan Pasquel**       | Frontend, biometría, gestión de sesiones cliente  |
+| **Anthony Villarreal** | Middleware, validación, pruebas de seguridad      |
 
 ## 7. REVISIÓN DEL MODELO
 
