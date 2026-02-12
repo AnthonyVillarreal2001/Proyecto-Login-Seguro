@@ -12,19 +12,19 @@
 ## 2. CLASIFICACIÓN
 
 ### 2.1 Severidad
-| Nivel | Tiempo Remediacón | Ejemplo |
-|-------|-------------------|---------|
-| **Crítica** | 24 horas | Inyección SQL activa |
-| **Alta** | 72 horas | Clave encriptación hardcodeada |
-| **Media** | 7 días | Rate limiting muy permisivo |
-| **Baja** | 14 días | Mensajes error muy detallados |
+| Nivel       | Tiempo Remediacón | Ejemplo                        |
+| ----------- | ----------------- | ------------------------------ |
+| **Crítica** | 24 horas          | Inyección SQL activa           |
+| **Alta**    | 72 horas          | Clave encriptación hardcodeada |
+| **Media**   | 7 días            | Rate limiting muy permisivo    |
+| **Baja**    | 14 días           | Mensajes error muy detallados  |
 
 ### 2.2 Responsables por Tipo
-| Tipo | Reporta | Clasifica | Remedía | Verifica |
-|------|---------|-----------|---------|----------|
-| Backend | Cualquiera | Carlos | Carlos | Anthony |
-| Frontend | Cualquiera | Juan | Juan | Carlos |
-| Middleware | Cualquiera | Anthony | Anthony | Juan |
+| Tipo       | Reporta    | Clasifica | Remedía | Verifica |
+| ---------- | ---------- | --------- | ------- | -------- |
+| Backend    | Cualquiera | Carlos    | Carlos  | Anthony  |
+| Frontend   | Cualquiera | Juan      | Juan    | Carlos   |
+| Middleware | Cualquiera | Anthony   | Anthony | Juan     |
 
 ## 3. CANALES DE REPORTE
 
@@ -115,11 +115,11 @@ app.use((req, res, next) => {
 
 ### 6.1 Interna
 
-| Severidad | Acciones |
-|-----------|----------|
-| Crítica/Alta | WhatsApp inmediato a los 3 |
-| Media | GitHub Issue + mencionar en daily |
-| Baja | GitHub Issue solamente |
+| Severidad    | Acciones                          |
+| ------------ | --------------------------------- |
+| Crítica/Alta | WhatsApp inmediato a los 3        |
+| Media        | GitHub Issue + mencionar en daily |
+| Baja         | GitHub Issue solamente            |
 
 ### 6.2 Externa (si aplica)
 
@@ -152,8 +152,8 @@ app.use((req, res, next) => {
 
 ## Aprobación
 
-| Responsable | Firma | Fecha |
-|------------|-------|-------|
-| Carlos Campoverde | __________ | 12/01/2026 |
-| Juan Pasquel | __________ | 12/01/2026 |
+| Responsable        | Firma      | Fecha      |
+| ------------------ | ---------- | ---------- |
+| Carlos Campoverde  | __________ | 12/01/2026 |
+| Juan Pasquel       | __________ | 12/01/2026 |
 | Anthony Villarreal | __________ | 12/01/2026 |

@@ -6,20 +6,20 @@
 ## 1. ACTIVOS CRÍTICOS
 
 ### 1.1 Datos Sensibles
-| Activo | Ubicación | Sensibilidad | Dueño |
-|--------|-----------|--------------|-------|
-| Embeddings faciales | PostgreSQL users.preferences | Alta | Carlos |
-| Hashes de contraseñas | PostgreSQL users.password_hash | Alta | Carlos |
-| Tokens JWT activos | localStorage frontend | Media | Juan |
-| Logs de autenticación | Winston logs | Media | Anthony |
+| Activo                | Ubicación                      | Sensibilidad | Dueño   |
+| --------------------- | ------------------------------ | ------------ | ------- |
+| Embeddings faciales   | PostgreSQL users.preferences   | Alta         | Carlos  |
+| Hashes de contraseñas | PostgreSQL users.password_hash | Alta         | Carlos  |
+| Tokens JWT activos    | localStorage frontend          | Media        | Juan    |
+| Logs de autenticación | Winston logs                   | Media        | Anthony |
 
 ### 1.2 Componentes de Software
-| Componente | Responsable | Crítico |
-|------------|-------------|---------|
-| userController.js | Carlos | Sí |
-| encryption.js | Carlos | Sí |
-| Login.js | Juan | Sí |
-| authMiddleware.js | Anthony | Sí |
+| Componente        | Responsable | Crítico |
+| ----------------- | ----------- | ------- |
+| userController.js | Carlos      | Sí      |
+| encryption.js     | Carlos      | Sí      |
+| Login.js          | Juan        | Sí      |
+| authMiddleware.js | Anthony     | Sí      |
 
 ## 2. DEPENDENCIAS
 
@@ -50,12 +50,12 @@ winston: ^3.19.0
 
 ## 3. ENDPOINTS CRÍTICOS
 
-| Endpoint | Método | Autenticación | Responsable |
-|----------|--------|---------------|-------------|
-| `/auth/login` | POST | No | Carlos |
-| `/auth/biometric/login` | POST | No | Carlos |
-| `/profile/save-face-embedding` | POST | Sí | Carlos |
-| `/users` (admin) | GET | Admin | Carlos |
+| Endpoint                       | Método | Autenticación | Responsable |
+| ------------------------------ | ------ | ------------- | ----------- |
+| `/auth/login`                  | POST   | No            | Carlos      |
+| `/auth/biometric/login`        | POST   | No            | Carlos      |
+| `/profile/save-face-embedding` | POST   | Sí            | Carlos      |
+| `/users` (admin)               | GET    | Admin         | Carlos      |
 
 ## 4. ARCHIVOS DE CONFIGURACIÓN
 
